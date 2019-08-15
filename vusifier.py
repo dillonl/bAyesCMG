@@ -1,3 +1,4 @@
+import pandas as pd
 import argparse
 import vcfFileParser
 import pedFileParser
@@ -8,10 +9,14 @@ def main():
     parser.add_argument('-p', action="store", dest="pedFilePath", help="path to the PED file", required=True)
     results = parser.parse_args()
 
-    variants = vcfFileParser.extractVariants(results.vcfFilePath)
+    acmg_evidences = pd.read_csv('data/ACMG_evidences.csv')
+
+    # variants = vcfFileParser.extractVariants(results.vcfFilePath)
     families = pedFileParser.parserPedFile(results.pedFilePath)
-    print(variants)
-    print(families)
+    vcf = vcfFileParser.VCF(families, results.vcfFilePath, acmg_evidences)
+    vcf.processVariants()
+    # print(variants)
+    # print(families)
 
 if __name__ == "__main__":
     main()

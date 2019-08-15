@@ -6,9 +6,15 @@ class Family:
         self.familyID = familyID
         self.samples = {}
 
+    def getAllIndividuals(self):
+        return self.samples
+
     def addIndividual(self, sample):
         if sample.individualID not in self.samples:
             self.samples[sample.individualID] = sample
+
+    def getIndividual(self, individualID):
+        return self.samples[individualID]
 
 class Sample:
 
@@ -17,6 +23,7 @@ class Sample:
         self.individualID = individualID
         self.paternalID = paternalID
         self.maternalID = maternalID
+        self.sampleIdx = 0
         try:
             self.sex = int(sex)
             self.phenotype = int(phenotype)
