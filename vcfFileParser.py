@@ -2,11 +2,9 @@ import gzip
 
 class VCF:
 
-    def __init__(self, families, vcfFilePath, evidences):
+    def __init__(self, families, vcfFilePath):
         self.vcfFilePath = vcfFilePath
         self.families = families
-        self.evidences = evidences
-        self.vep_keys = ['Location', 'Allele', 'SYMBOL', 'IMPACT', 'Consequence', 'Protein_position', 'Amino_acids', 'Existing_variation', 'IND', 'ZYG', 'MAX_AF', 'gnomAD_AF', 'ExACpLI', 'REVEL', 'DOMAINS', 'SpliceRegion', 'CCR', 'CSN', 'PUBMED']
         self.sampleIdxs = {}
 
     def getSampleInfo(self, sampleName, formatField, vcfLineSplit):
@@ -16,7 +14,6 @@ class VCF:
             sampleInfo[formatFieldSplit[i]] = sampleInfoSplit[i]
         if '1' not in sampleInfo["GT"]:
             return None
-
         return
 
     def processVariants(self):
@@ -35,6 +32,15 @@ class VCF:
                         self.sampleIdxs[counter] = sampleName
                         counter += 1
                 continue
+            sampleLabelsSplit = lineSplit[-1*len(samples) - 1].split(":")
+            for sampleIdx in range(9, 9+len(samples)):
+                sampleSplit = lineSplit[sampleIdx].split(":")
+                sampleDict = {sampleLabelsSplit[i] : sampleSplit[i] for i in range(len(sampleSplit)) }
+                print(sampleDict)
+                # AT THIS POINT YOU"LL WANT TO GET THE EVIDENCE CODES FOR EACH AND PASS THEM TO
+                # A COOL FUNCTION THAT CALCULATES THE POSTERIOR PROBABILITY AND THE ODDS_PATH
+            exit(0)
+            '''
             info = {f.split("=")[0]: f.split("=")[1] if "=" in f else f for f in lineSplit[7].split(';')}
             if 'CSQ' not in info:
                 continue
@@ -50,3 +56,4 @@ class VCF:
             variantSamples = {}
             # for sample in samples:
                 # variantSamples[sample] = {key:val for }
+            '''
