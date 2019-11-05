@@ -1,17 +1,18 @@
+import sys
 import pandas as pd
 import argparse
 import vcfFileParser
 import pedFileParser
-# import urllib.request
 import gzip
 import os.path
-import sys
 from ftplib import FTP
 from dateutil import parser
 from datetime import datetime, timedelta
 from pytz import timezone
 sys.path.append('externals/CharGer')
 from charger import charger
+import imp
+imp.reload(charger)
 
 def validateCommandLineArgs(results):
     if results.priorProbability != None:

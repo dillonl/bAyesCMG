@@ -1,4 +1,9 @@
+import sys
 import gzip
+sys.path.append('externals/CharGer')
+from charger import charger
+# import imp
+reload(charger)
 
 class VCF:
 
@@ -6,6 +11,56 @@ class VCF:
         self.vcfFilePath = vcfFilePath
         self.families = families
         self.sampleIdxs = {}
+        print('1')
+        self.charger = charger.charger()
+        # [ vepDone , preVEP , exacDone , clinvarDone ] = self.charger.getInputData( vcf=vcfFilePath )
+        # CharGer.getExternalData( clinvar=True , exac=True , vep=True )
+        print('hello world')
+        '''
+        vcf=vcfFile
+        self.charger.PVS1( )
+        self.charger.PS1( )
+        self.charger.PS2( )
+        self.charger.PS3( )
+        self.charger.PS4( )
+        self.charger.PM1( recurrenceThreshold , hotspot3d=clustersFile )
+        self.charger.PM2( rareAF )
+        self.charger.PM3( )
+        self.charger.PM4( )
+        self.charger.PM5( )
+        self.charger.PM6( )
+        self.charger.PP1( )
+        self.charger.PP2( )
+        self.charger.PP3( minimumEvidence )
+        self.charger.PP4( )
+        self.charger.PP5( )
+
+        self.charger.BA1( commonAF )
+        self.charger.BS1( )
+        self.charger.BS2( )
+        self.charger.BS3( )
+        self.charger.BS4( )
+        self.charger.BP1( )
+        self.charger.BP2( )
+        self.charger.BP3( )
+        self.charger.BP4( minimumEvidence )
+        self.charger.BP5( )
+        self.charger.BP6( )
+        self.charger.BP7( )
+
+        self.charger.PSC1( )
+        self.charger.PMC1( )
+        self.charger.PPC1( )
+        self.charger.PPC2( )
+
+        self.charger.BSC1( )
+        self.charger.BMC1( )
+
+        print( str( rareAF ) + " < " + str( commonAF ) )
+        t4 = time.time()
+
+        self.charger.classify( system="ACMG", scoresMap = scoresMap )
+        '''
 
     def getSampleInfo(self, sampleName, formatField, vcfLineSplit):
         sampleInfoSplit = vcfLineSplit[self.sampleIdxs[sampleName]].split(':')
@@ -40,20 +95,3 @@ class VCF:
                 # AT THIS POINT YOU"LL WANT TO GET THE EVIDENCE CODES FOR EACH AND PASS THEM TO
                 # A COOL FUNCTION THAT CALCULATES THE POSTERIOR PROBABILITY AND THE ODDS_PATH
             exit(0)
-            '''
-            info = {f.split("=")[0]: f.split("=")[1] if "=" in f else f for f in lineSplit[7].split(';')}
-            if 'CSQ' not in info:
-                continue
-            csqValues = info["CSQ"].split(",")
-            print(len(self.vep_keys), len(csqValues))
-            print(info["CSQ"])
-            csq = {self.vep_keys[i]: csqValues[i] for i in range(len(csqValues))}
-            print(csq)
-            exit(0)
-
-
-            formatField = lineSplit[8].split(':')
-            variantSamples = {}
-            # for sample in samples:
-                # variantSamples[sample] = {key:val for }
-            '''
