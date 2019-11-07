@@ -1,66 +1,53 @@
 import sys
 import gzip
-sys.path.append('externals/CharGer')
+# sys.path.append('externals/CharGer')
+sys.path.append('externals/CharGer/charger')
+import jimmer
 from charger import charger
-# import imp
-reload(charger)
+import imp
+imp.reload(charger)
+from enum import Enum
+
+class CODES(Enum):
+    #benign
+    BP1 = 1
+    BP2 = 2
+    BP3 = 3
+    BP4 = 4
+    BP5 = 5
+    BP6 = 6
+    BP7 = 7
+    BS1 = 8
+    BS2 = 9
+    BS3 = 10
+    BS4 = 11
+    BA1 = 12
+    #pathogenic
+    PP1 = 13
+    PP2 = 14
+    PP3 = 15
+    PM1 = 16
+    PM2 = 17
+    PM3 = 18
+    PM4 = 19
+    PM5 = 20
+    PM6 = 21
+    PS1 = 22
+    PS2 = 23
+    PS3 = 24
+    PS4 = 25
+    PVS1 = 26
 
 class VCF:
 
-    def __init__(self, families, vcfFilePath):
+    def __init__(self, families, vcfFilePath, priorProbability, oddsPathogenicity, exponent):
         self.vcfFilePath = vcfFilePath
         self.families = families
         self.sampleIdxs = {}
-        print('1')
-        self.charger = charger.charger()
-        # [ vepDone , preVEP , exacDone , clinvarDone ] = self.charger.getInputData( vcf=vcfFilePath )
-        # CharGer.getExternalData( clinvar=True , exac=True , vep=True )
-        print('hello world')
-        '''
-        vcf=vcfFile
-        self.charger.PVS1( )
-        self.charger.PS1( )
-        self.charger.PS2( )
-        self.charger.PS3( )
-        self.charger.PS4( )
-        self.charger.PM1( recurrenceThreshold , hotspot3d=clustersFile )
-        self.charger.PM2( rareAF )
-        self.charger.PM3( )
-        self.charger.PM4( )
-        self.charger.PM5( )
-        self.charger.PM6( )
-        self.charger.PP1( )
-        self.charger.PP2( )
-        self.charger.PP3( minimumEvidence )
-        self.charger.PP4( )
-        self.charger.PP5( )
+        self.priorProbability = priorProbability
+        self.oddsPathogenicity = oddsPathogenicity
+        self.exponent = exponent
 
-        self.charger.BA1( commonAF )
-        self.charger.BS1( )
-        self.charger.BS2( )
-        self.charger.BS3( )
-        self.charger.BS4( )
-        self.charger.BP1( )
-        self.charger.BP2( )
-        self.charger.BP3( )
-        self.charger.BP4( minimumEvidence )
-        self.charger.BP5( )
-        self.charger.BP6( )
-        self.charger.BP7( )
-
-        self.charger.PSC1( )
-        self.charger.PMC1( )
-        self.charger.PPC1( )
-        self.charger.PPC2( )
-
-        self.charger.BSC1( )
-        self.charger.BMC1( )
-
-        print( str( rareAF ) + " < " + str( commonAF ) )
-        t4 = time.time()
-
-        self.charger.classify( system="ACMG", scoresMap = scoresMap )
-        '''
 
     def getSampleInfo(self, sampleName, formatField, vcfLineSplit):
         sampleInfoSplit = vcfLineSplit[self.sampleIdxs[sampleName]].split(':')
@@ -95,3 +82,21 @@ class VCF:
                 # AT THIS POINT YOU"LL WANT TO GET THE EVIDENCE CODES FOR EACH AND PASS THEM TO
                 # A COOL FUNCTION THAT CALCULATES THE POSTERIOR PROBABILITY AND THE ODDS_PATH
             exit(0)
+
+
+
+    def getPosterior(variant):
+        countPVst = variant.getPVstCounts()
+        countPSt = variant.getPStCounts()
+        countPM = variant.getPMCounts()
+        countPSu = variant.getPSuCounts()
+        oddsPathEquation = self.oddsPathogenicity ** ((countPSu / (self.exponent ** 3)) + (countPM / (self.exponent ** 2)) + (countPSt / (self.exponent ** 1)) + (countPVst / 1))
+
+        countBSt = variant.getBStCounts()
+        countBSu = variant.getBSuCounts()
+        oddsBenignEquation = self.oddsPathogenicity ** ((countBSu / (self.exponent ** 3)) + (countBSt / (self.exponent ** 2)))
+
+        combinedOddsPath = oddsPathEquation * oddsBenignEquation
+
+        posterior = (combinedOddsPath * self.priorProbability) / ((combinedOddsPath - 1) * (self.priorProbability + 1))
+        return posterior
