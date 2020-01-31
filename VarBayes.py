@@ -9,11 +9,6 @@ from ftplib import FTP
 from dateutil import parser
 from datetime import datetime, timedelta
 from pytz import timezone
-'''
-sys.path.append('externals/CharGer')
-from charger import charger
-reload(charger)
-'''
 
 def validateCommandLineArgs(results):
     if results.priorProbability != None:
@@ -66,8 +61,6 @@ def main():
     families = pedFileParser.parserPedFile(results.pedFilePath)
     vcf = vcfFileParser.VUSVCF(families, results.vcfFilePath, results.priorProbability, results.oddsPathogenicity, results.exponent, results.gnomAD_AF_Threshold, results.REVEL_Threshold, outputVCFFile)
     vcf.processVariants()
-    # print(variants)
-    # print(families)
 
 if __name__ == "__main__":
     main()

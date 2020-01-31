@@ -5,11 +5,12 @@ import variant
 from cyvcf2 import VCF
 from enum import Enum
 
+from pprint import pprint
+
 class VUSVCF:
 
     vepAnnotationKey = {'Location': 0, 'Allele': 1, 'SYMBOL': 2, 'IMPACT': 3, 'Consequence': 4, 'Protein_position': 5, 'Amino_acids': 6, 'Existing_variation': 7, 'IND': 8, 'ZYG': 9, 'ExACpLI': 10, 'REVEL': 11, 'DOMAINS': 12, 'CSN': 13, 'PUBMED': 14}
 
-    # def __init__(self, families, vcfFilePath, priorProbability, oddsPathogenicity, exponent, gnomadDB, bs1AF, bs2AF):
     def __init__(self, families, vcfFilePath, priorProbability, oddsPathogenicity, exponent, gnomAD_AF_Threshold, REVEL_Threshold, outputVCF):
         scoresMap = { 'minPathogenicScore': 9 , 'minLikelyPathogenicScore' : 5 , 'maxLikelyBenignScore': -4 , 'maxBenignScore': -8 }
         self.outputVCF = outputVCF
@@ -21,6 +22,29 @@ class VUSVCF:
         self.exponent = exponent
         self.gnomAD_AF_Threshold = gnomAD_AF_Threshold
         self.REVEL_Threshold = REVEL_Threshold
+
+        self.evidenceExponentSupporting = self.exponent ** (-3) # found in the spreadsheet
+        self.evidenceExponentModerate = self.exponent ** (-2) # found in the spreadsheet
+        self.evidenceExponentStrong = self.exponent ** (-1) # found in the spreadsheet
+        self.evidenceExponentVeryStrong = self.exponent ** (0) # found in the spreadsheet
+
+        self.oddsPathSupporting = oddsPathogenicity ** self.evidenceExponentSupporting
+        self.oddsPathModerate = oddsPathogenicity ** self.evidenceExponentModerate
+        self.oddsPathStrong = oddsPathogenicity ** self.evidenceExponentStrong
+        self.oddsPathVeryStrong = oddsPathogenicity ** self.evidenceExponentVeryStrong
+
+        '''
+        print('evidenceExponentSupporting', self.evidenceExponentSupporting)
+        print('evidenceExponentModerate', self.evidenceExponentModerate)
+        print('evidenceExponentStrong', self.evidenceExponentStrong)
+        print('evidenceExponentVeryStrong', self.evidenceExponentVeryStrong)
+
+        print('oddsPathSupporting', self.oddsPathSupporting)
+        print('oddsPathModerate', self.oddsPathModerate)
+        print('oddsPathStrong', self.oddsPathStrong)
+        print('oddsPathVeryStrong', self.oddsPathVeryStrong)
+        exit(0)
+        '''
 
 
     def getSampleInfo(self, sampleName, formatField, vcfLineSplit):
@@ -39,36 +63,54 @@ class VUSVCF:
             return csq[self.vepAnnotationKey[key]]
 
     def processVariants(self):
+        '''
         samples = {}
         for familyID in self.families:
             for sampleID in self.families[familyID].samples:
                 samples[sampleID] = self.families[familyID].samples[sampleID]
-
-
+        '''
         cyVCF = VCF(self.vcfFilePath)
+        self.families.setSampleIdxs(cyVCF.samples)
+        getCSQList = self.getCSQList(cyVCF.raw_header)
         cyVCF.add_info_to_header({"ID": "Evidence_Codes", "Number": "1", "Type": "String", "Description": "All ACMG evidence codes that apply to this variant"})
         cyVCF.add_info_to_header({"ID": "Posterior_Pathogenic_Probability", "Number": "1", "Type": "String", "Description": "Posterior Pathogenic Probability"})
+        self.outputVCF.write(cyVCF.raw_header)
         for v in cyVCF:
-            var = variant.Variant(v, self.gnomAD_AF_Threshold, self.REVEL_Threshold)
+            var = variant.Variant(v, self.families, self.gnomAD_AF_Threshold, self.REVEL_Threshold, getCSQList)
             posterior = self.getPosterior(var)
             v.INFO["Evidence_Codes"] = var.getEvidenceCodesString()
-            v.INFO["Posterior_Pathogenic_Probability"] = str(self.getPosterior(var))
-            # self.outputVCF.write(str(v))
-            print(str(v))
-            exit(0)
+            # v.INFO["Posterior_Pathogenic_Probability"] = str(format(self.getPosterior(var), '.3f'))
+            v.INFO["Posterior_Pathogenic_Probability"] = str(format(self.getPosterior(var), '.3f'))
+            self.outputVCF.write(str(v))
+            # print(str(v))
+            # exit(0)
+
+    def getCSQList(self, rawHeader):
+        headerSplit1 = rawHeader.split('##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: ')
+        headerSplit2 = headerSplit1[1].split('">')
+        return headerSplit2[0].split('|')
 
     def getPosterior(self, variant):
-        countPVst = variant.getPVstCounts()
-        countPSt = variant.getPStCounts()
-        countPM = variant.getPMCounts()
-        countPSu = variant.getPSuCounts()
-        oddsPathEquation = self.oddsPathogenicity ** ((countPSu / (self.exponent ** 3)) + (countPM / (self.exponent ** 2)) + (countPSt / (self.exponent ** 1)) + (countPVst / 1))
+        pathogenicOddsPathSupporting = self.oddsPathSupporting ** variant.getPathogenicSupportingCounts()
+        pathogenicOddsPathModerate = self.oddsPathModerate ** variant.getPathogenicModerateCounts()
+        pathogenicOddsPathStrong = self.oddsPathStrong ** variant.getPathogenicStrongCounts()
+        pathogenicOddsPathVeryStrong = self.oddsPathVeryStrong ** variant.getPathogenicVeryStrongCounts()
 
-        countBSt = variant.getBStCounts()
-        countBSu = variant.getBSuCounts()
-        oddsBenignEquation = self.oddsPathogenicity ** ((countBSu / (self.exponent ** 3)) + (countBSt / (self.exponent ** 2)))
+        benignOddsPathSupporting = self.oddsPathSupporting ** ((-1)*variant.getBenignSupportingCounts())
+        benignOddsPathModerate = self.oddsPathModerate ** ((-1)*variant.getBenignModerateCounts())
+        benignOddsPathStrong = self.oddsPathStrong ** ((-1)*variant.getBenignStrongCounts())
+        benignOddsPathVeryStrong = self.oddsPathVeryStrong ** ((-1)*variant.getBenignVeryStrongCounts())
 
-        combinedOddsPath = oddsPathEquation * oddsBenignEquation
+        combinedOdds = pathogenicOddsPathSupporting * pathogenicOddsPathModerate * pathogenicOddsPathStrong * pathogenicOddsPathVeryStrong * benignOddsPathSupporting * benignOddsPathModerate * benignOddsPathStrong * benignOddsPathVeryStrong
 
-        posterior = (combinedOddsPath * self.priorProbability) / ((combinedOddsPath - 1) * (self.priorProbability + 1))
+        posteriorNum = (float(combinedOdds) * float(self.priorProbability))
+        posteriorDenom = (((float(combinedOdds)-1)*float(self.priorProbability))+float(1))
+        posterior = posteriorNum/posteriorDenom
+
+        # print(benignOddsPathStrong, variant.getBenignStrongCounts())
+        # print(benignOddsPathVeryStrong, variant.getBenignVeryStrongCounts())
+
+        # print(pathogenicOddsPathSupporting, pathogenicOddsPathModerate, pathogenicOddsPathStrong, pathogenicOddsPathVeryStrong, benignOddsPathSupporting, benignOddsPathModerate, benignOddsPathStrong, benignOddsPathVeryStrong)
+        # print(combinedOdds, posterior)
+
         return posterior
