@@ -5,10 +5,12 @@ import vcfFileParser
 import pedFileParser
 import gzip
 import os.path
+from cyvcf2 import VCF
 from ftplib import FTP
 from dateutil import parser
 from datetime import datetime, timedelta
 from pytz import timezone
+import urllib.request
 
 def validateCommandLineArgs(results):
     if results.priorProbability != None:
@@ -42,24 +44,36 @@ def validateCommandLineArgs(results):
             return False
     return True
 
+def getClinVarData(clinVarPath):
+    clinVarData = {}
+    cyVCF = VCF(clinVarPath)
+    for v in cyVCF:
+        for alt in v.ALT:
+            key = "%s:%s:%s:%s" % (v.CHROM, v.POS, v.REF, alt)
+            clinVarData[key] = v
+    return clinVarData
+
+
 def main():
     scriptPath = os.path.abspath(os.path.dirname(sys.argv[0]))
     parser = argparse.ArgumentParser(description="Naive Bayes framework for ACMG/AMP variant classification")
     parser.add_argument('-d', action="store", dest="outputVcfFilePath", help="path to the output VCF file", required=True)
     parser.add_argument('-v', action="store", dest="vcfFilePath", help="path to the VCF file", required=True)
     parser.add_argument('-f', action="store", dest="pedFilePath", help="path to the PED file", required=True)
-    parser.add_argument('-p', action="store", dest="priorProbability", help='The prior probability (default value = 0.1)', required=False, default=0.1)
-    parser.add_argument('-o', action="store", dest="oddsPathogenicity", help='The odds of pathogenicity for "Very Strong" (default value = 350)', required=False, default=350)
-    parser.add_argument('-e', action="store", dest="exponent", help='The exponent that sets the strength of Supporting/ Moderate/ Strong/ compared to "Very Strong" (default value = 2.0)', required=False, default=2.0)
-    parser.add_argument('-a', action="store", dest="gnomAD_AF_Threshold", help='gnomAD_AF threshold [Ask Matt] (default value = 0.01)', required=False, default=0.01)
-    parser.add_argument('-r', action="store", dest="REVEL_Threshold", help='REVEL threshold [Ask Matt] (default value = 0.6)', required=False, default=0.6)
+    parser.add_argument('-c', action="store", dest="clinVar", help="Path to VEP annotated ClinVar file", required=True)
+    parser.add_argument('-p', action="store", dest="priorProbability", help='The prior probability (default value = 0.1)', required=False, default=0.1, type=float)
+    parser.add_argument('-o', action="store", dest="oddsPathogenicity", help='The odds of pathogenicity for "Very Strong" (default value = 350)', required=False, default=350, type=float)
+    parser.add_argument('-e', action="store", dest="exponent", help='The exponent that sets the strength of Supporting/ Moderate/ Strong/ compared to "Very Strong" (default value = 2.0)', required=False, default=2.0, type=float)
+    parser.add_argument('-a', action="store", dest="gnomAD_AF_Threshold", help='gnomAD_AF threshold [Ask Matt] (default value = 0.01)', required=False, default=0.01, type=float)
+    parser.add_argument('-r', action="store", dest="REVEL_Threshold", help='REVEL threshold [Ask Matt] (default value = 0.6)', required=False, default=0.6, type=float)
     results = parser.parse_args()
     if not validateCommandLineArgs(results):
         exit(0)
 
+    clinVarData = getClinVarData(results.clinVar)
     outputVCFFile = open(results.outputVcfFilePath, 'w')
     families = pedFileParser.parserPedFile(results.pedFilePath)
-    vcf = vcfFileParser.VUSVCF(families, results.vcfFilePath, results.priorProbability, results.oddsPathogenicity, results.exponent, results.gnomAD_AF_Threshold, results.REVEL_Threshold, outputVCFFile)
+    vcf = vcfFileParser.VUSVCF(families, results.vcfFilePath, results.priorProbability, results.oddsPathogenicity, results.exponent, results.gnomAD_AF_Threshold, results.REVEL_Threshold, outputVCFFile, clinVarData)
     vcf.processVariants()
 
 if __name__ == "__main__":

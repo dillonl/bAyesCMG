@@ -11,8 +11,9 @@ class VUSVCF:
 
     vepAnnotationKey = {'Location': 0, 'Allele': 1, 'SYMBOL': 2, 'IMPACT': 3, 'Consequence': 4, 'Protein_position': 5, 'Amino_acids': 6, 'Existing_variation': 7, 'IND': 8, 'ZYG': 9, 'ExACpLI': 10, 'REVEL': 11, 'DOMAINS': 12, 'CSN': 13, 'PUBMED': 14}
 
-    def __init__(self, families, vcfFilePath, priorProbability, oddsPathogenicity, exponent, gnomAD_AF_Threshold, REVEL_Threshold, outputVCF):
+    def __init__(self, families, vcfFilePath, priorProbability, oddsPathogenicity, exponent, gnomAD_AF_Threshold, REVEL_Threshold, outputVCF, clinVarData):
         scoresMap = { 'minPathogenicScore': 9 , 'minLikelyPathogenicScore' : 5 , 'maxLikelyBenignScore': -4 , 'maxBenignScore': -8 }
+        self.clinVarData = clinVarData
         self.outputVCF = outputVCF
         self.vcfFilePath = vcfFilePath
         self.families = families
@@ -33,19 +34,6 @@ class VUSVCF:
         self.oddsPathStrong = oddsPathogenicity ** self.evidenceExponentStrong
         self.oddsPathVeryStrong = oddsPathogenicity ** self.evidenceExponentVeryStrong
 
-        '''
-        print('evidenceExponentSupporting', self.evidenceExponentSupporting)
-        print('evidenceExponentModerate', self.evidenceExponentModerate)
-        print('evidenceExponentStrong', self.evidenceExponentStrong)
-        print('evidenceExponentVeryStrong', self.evidenceExponentVeryStrong)
-
-        print('oddsPathSupporting', self.oddsPathSupporting)
-        print('oddsPathModerate', self.oddsPathModerate)
-        print('oddsPathStrong', self.oddsPathStrong)
-        print('oddsPathVeryStrong', self.oddsPathVeryStrong)
-        exit(0)
-        '''
-
 
     def getSampleInfo(self, sampleName, formatField, vcfLineSplit):
         sampleInfoSplit = vcfLineSplit[self.sampleIdxs[sampleName]].split(':')
@@ -63,12 +51,6 @@ class VUSVCF:
             return csq[self.vepAnnotationKey[key]]
 
     def processVariants(self):
-        '''
-        samples = {}
-        for familyID in self.families:
-            for sampleID in self.families[familyID].samples:
-                samples[sampleID] = self.families[familyID].samples[sampleID]
-        '''
         cyVCF = VCF(self.vcfFilePath)
         self.families.setSampleIdxs(cyVCF.samples)
         getCSQList = self.getCSQList(cyVCF.raw_header)
@@ -76,14 +58,16 @@ class VUSVCF:
         cyVCF.add_info_to_header({"ID": "Posterior_Pathogenic_Probability", "Number": "1", "Type": "String", "Description": "Posterior Pathogenic Probability"})
         self.outputVCF.write(cyVCF.raw_header)
         for v in cyVCF:
-            var = variant.Variant(v, self.families, self.gnomAD_AF_Threshold, self.REVEL_Threshold, getCSQList)
+            matchingClinVarVariants = []
+            for alt in v.ALT:
+                key = "%s:%s:%s:%s" % (v.CHROM, v.POS, v.REF, alt)
+                if key in self.clinVarData:
+                    matchingClinVarVariants.append(self.clinVarData[key])
+            var = variant.Variant(v, self.families, self.gnomAD_AF_Threshold, self.REVEL_Threshold, getCSQList, matchingClinVarVariants)
             posterior = self.getPosterior(var)
             v.INFO["Evidence_Codes"] = var.getEvidenceCodesString()
-            # v.INFO["Posterior_Pathogenic_Probability"] = str(format(self.getPosterior(var), '.3f'))
             v.INFO["Posterior_Pathogenic_Probability"] = str(format(self.getPosterior(var), '.3f'))
             self.outputVCF.write(str(v))
-            # print(str(v))
-            # exit(0)
 
     def getCSQList(self, rawHeader):
         headerSplit1 = rawHeader.split('##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: ')

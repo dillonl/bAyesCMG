@@ -2,16 +2,20 @@ from cyvcf2 import VCF
 
 class Variant:
 
-    def __init__(self, variant, families, gnomAD_AF_Threshold, REVEL_Threshold, CSQList):
+    def __init__(self, variant, families, gnomAD_AF_Threshold, REVEL_Threshold, CSQList, matchingClinVarVariants):
+        self.matchingClinVarVariants = matchingClinVarVariants
         self.variant = variant
         self.evidenceCodes = {"PVS1": 0, "PS1": 0, "PS2": 0, "PS3": 0, "PS4": 0, "PM1": 0, "PM2": 0, "PM3": 0, "PM4": 0, "PM5": 0, "PM6": 0, "PP1": 0, "PP2": 0, "PP3": 0, "PP4": 0, "PP5": 0, "BA1": 0, "BS1": 0, "BS2": 0, "BS3": 0, "BS4": 0, "BP1": 0, "BP2": 0, "BP3": 0, "BP4": 0, "BP5": 0, "BP6": 0, "BP7": 0}
-
+        self.CSQList = CSQList
+        self.CSQDict = self.getCSQDict(self.variant)
+        '''
         self.CSQDict = {v:[] for i, v in enumerate(CSQList)} # produces a dictionary of empty arrays
         if self.variant.INFO.get("CSQ") != None:
             rawCSQ = [x.split('|') for x in self.variant.INFO.get("CSQ").split(',')]
             for csqIdx, csqKey in enumerate(CSQList):
                 for csqList in rawCSQ:
                     self.CSQDict[csqKey].append(csqList[csqIdx])
+        '''
 
         self.position = self.variant.POS
         self.gnomad_popmax_af = 0
@@ -38,6 +42,15 @@ class Variant:
         self.processBStCounts()
         self.processBSuCounts()
 
+    def getCSQDict(self, variant):
+        CSQDict = {v:[] for i, v in enumerate(self.CSQList)} # produces a dictionary of empty arrays
+        if variant.INFO.get("CSQ") != None:
+            rawCSQ = [x.split('|') for x in variant.INFO.get("CSQ").split(',')]
+            for csqIdx, csqKey in enumerate(self.CSQList):
+                for csqList in rawCSQ:
+                    CSQDict[csqKey].append(csqList[csqIdx])
+        return CSQDict
+
     def processPVstCounts(self):
         # very strong PVS1
         highCount = self.CSQDict['IMPACT'].count("HIGH")
@@ -51,6 +64,14 @@ class Variant:
         # strong PS1-PS4
         # Checking PS1
         self.evidenceCodes["PS1"] = 0
+        if len(self.matchingClinVarVariants) > 0:
+            for clinVarVariant in self.matchingClinVarVariants:
+                if clinVarVariant.INFO.get('CLNSIG') is not None and clinVarVariant.INFO.get('CLNSIG').lower() == "pathogenic":
+                    clinvarCSQDict = self.getCSQDict(clinVarVariant)
+                    if clinvarCSQDict['Protein_position'] == self.CSQDict['Protein_position'] and clinvarCSQDict['Amino_acids'] == self.CSQDict['Amino_acids']:
+                        self.evidenceCodes["PS1"] = 1
+            if self.evidenceCodes["PS1"] != 1:
+                self.evidenceCodes["PS1"] = -1
         # Checking PS2
         motherGeno = self.variant.genotypes[self.families.getMotherIDFromVCFIdx()]
         fatherGeno = self.variant.genotypes[self.families.getFatherIDFromVCFIdx()]
@@ -93,6 +114,15 @@ class Variant:
             self.evidenceCodes["PM4"] = -1
         # PM5 NA
         self.evidenceCodes["PM5"] = 0
+        if len(self.matchingClinVarVariants) > 0:
+            for clinVarVariant in self.matchingClinVarVariants:
+                if clinVarVariant.INFO.get('CLNSIG') is not None and clinVarVariant.INFO.get('CLNSIG').lower() == "pathogenic":
+                    clinvarCSQDict = self.getCSQDict(clinVarVariant)
+                    if clinvarCSQDict['Protein_position'] == self.CSQDict['Protein_position'] and clinvarCSQDict['Amino_acids'] != self.CSQDict['Amino_acids']:
+                        print(self.variant)
+                        self.evidenceCodes["PM5"] = 1
+            if self.evidenceCodes["PM5"] != 1:
+                self.evidenceCodes["PM5"] = 0
         # exit(0)
 
         # PM6 NA
