@@ -10,4 +10,6 @@ Applying the ACMG/AMP criteria often is tedious, manual and subject to human err
 
 ## Filtering
 
+## Evidence Codes
+
 ## Limitations/Considerations
