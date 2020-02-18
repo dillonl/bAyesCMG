@@ -15,6 +15,7 @@ Applying the ACMG/AMP criteria often is tedious, manual and subject to human err
 ## Evidence Codes
 Brief descriptions of the logic and application of evidence codes
 - PVS1 "Null variant (nonsense, frameshift, canonical ±1 or 2 splice sites, initiation codon, single or multiexon deletion) in a gene where LOF is a known mechanism of disease"
+  - VEP [consequence](https://m.ensembl.org/info/genome/variation/prediction/predicted_data.html) is HIGH
 - PS1 "Same amino acid change as a previously established pathogenic variant regardless of nucleotide change"
 - PS2 "De novo (both maternity and paternity confirmed) in a patient with the disease and no family history"
 - PS3 "Well-established in vitro or in vivo functional studies supportive of a damaging effect on the gene or gene product"
