@@ -10,7 +10,15 @@ Applying the ACMG/AMP criteria often is tedious, manual and subject to human err
 
 ### Flags
 
-## Filtering
+## Output
+Assertions:
+```
+-1 == evidence code evaluated, **no** assertion applied
+0 == evidence code **NOT** evaludated
+1 == evidence code evaluated, assertion applied
+```
+
+###  Filtering
 
 ## Evidence Codes
 Brief descriptions of the logic and application of evidence codes (Code "Description" - VarBayes logic for intepretation)
@@ -18,12 +26,19 @@ Brief descriptions of the logic and application of evidence codes (Code "Descrip
 - PVS1 "Null variant (nonsense, frameshift, canonical ±1 or 2 splice sites, initiation codon, single or multiexon deletion) in a gene where LOF is a known mechanism of disease"
   - VEP [consequence](https://m.ensembl.org/info/genome/variation/prediction/predicted_data.html) is HIGH, gene with known LOF mechanism is **not** considered
 - PS1 "Same amino acid change as a previously established pathogenic variant regardless of nucleotide change"
+  - Same amino acid change as annotated pathogenic variant in ClinVar VCF, disease/phenotype **not** considered
 - PS2 "De novo (both maternity and paternity confirmed) in a patient with the disease and no family history"
+  - Genotype 0/1 in proband, genotypes 0/0 in both parents
 - PS3 "Well-established in vitro or in vivo functional studies supportive of a damaging effect on the gene or gene product"
+  - **Not** currently implemented
 - PS4 "The prevalence of the variant in affected individuals is significantly increased compared with the prevalence in controls"
+  - Genotype segregates with affected status, regardless of genotype, 0/1 in proband and 0/0 in both parents, or 1/1 in proband and 0/0 or 0/1 in parents
 - PM1 "Located in a mutational hot spot and/or critical and well-established functional domain (e.g., active site of an enzyme) without benign variation"
+  - Variant has a functional domain annotation in VEP `--domains` [field](https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html#opt_domains)
 - PM2 "Absent from controls (or at extremely low frequency if recessive) in Exome Sequencing Project, 1000 Genomes Project, or Exome Aggregation Consortium"
+  - Less than 0.01 frequency in gnomAD (default), can also be specified by user
 - PM3 "For recessive disorders, detected in trans with a pathogenic variant"
+  - **Not** currently implemented
 - PM4 "Protein length changes as a result of in-frame deletions/insertions in a non-repeat region or stop-loss variants"
 - PM5 "Novel missense change at an amino acid residue where a different missense change determined to be pathogenic has been seen before"
 - PM6 "Assumed de novo, but without confirmation of paternity and maternity"
@@ -46,3 +61,4 @@ Brief descriptions of the logic and application of evidence codes (Code "Descrip
 - BP7 "A synonymous (silent) variant for which splicing prediction algorithms predict no impact to the splice consensus sequence nor the creation of a new splice site AND the nucleotide is not highly conserved"
 
 ## Limitations/Considerations
+- Requires trio (proband, mom, dad) VCF
