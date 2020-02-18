@@ -13,11 +13,7 @@ Applying the ACMG/AMP criteria often is tedious, manual and subject to human err
 ## Filtering
 
 ## Evidence Codes
-Brief descriptions of the logic and application of evidence codes
-
-Format:
-- CODE "Description of the code"
-  - VarBayes intrepretation/logic for code
+Brief descriptions of the logic and application of evidence codes (Code "Description" - VarBayes logic for intepretation)
 
 - PVS1 "Null variant (nonsense, frameshift, canonical ±1 or 2 splice sites, initiation codon, single or multiexon deletion) in a gene where LOF is a known mechanism of disease"
   - VEP [consequence](https://m.ensembl.org/info/genome/variation/prediction/predicted_data.html) is HIGH
