@@ -50,7 +50,7 @@ Brief descriptions of the logic and application of evidence codes (Code "Descrip
 - PP2 "Missense variant in a gene that has a low rate of benign missense variation and in which missense variants are a common mechanism of disease"
   - **Not** currently implemented
 - PP3 "Multiple lines of computational evidence support a deleterious effect on the gene or gene product (conservation, evolutionary, splicing impact, etc.)"
-  - VEP `REVEL` plugin score greater than 0.6 (default) or a user-specified value
+  - VEP `REVEL` [plugin](https://github.com/Ensembl/VEP_plugins/blob/release/99/REVEL.pm) score greater than 0.6 (default) or a user-specified value, due to REVEL only being used on missense variants
 - PP4 "Patient’s phenotype or family history is highly specific for a disease with a single genetic etiology"
   - **Not** currently implemented
 - PP5 "Reputable source recently reports variant as pathogenic, but the evidence is not available to the laboratory to perform an independent evaluation"
@@ -70,9 +70,9 @@ Brief descriptions of the logic and application of evidence codes (Code "Descrip
 - BP2 "Observed in trans with a pathogenic variant for a fully penetrant dominant gene/disorder or observed in cis with a pathogenic variant in any inheritance pattern"
   - **Not** currently implemented
 - BP3 "In-frame deletions/insertions in a repetitive region without a known function"
-  - No VEP `DOMAINS` field entry and `Consequence` field is inframe_insertion, inframe_deletion or stop_lost, currently **not** considering repeat regions or surrounding bases
+  - No VEP `DOMAINS` [field](https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html#opt_domains) and `Consequence` [field](https://m.ensembl.org/info/genome/variation/prediction/predicted_data.html) is inframe_insertion, inframe_deletion or stop_lost, currently **not** considering repeat regions or surrounding bases
 - BP4 "Multiple lines of computational evidence suggest no impact on gene or gene product (conservation, evolutionary, splicing impact, etc.)"
-  - VEP `REVEL` plugin score less than 0.6 (default) or a user-specified value
+  - VEP `REVEL` [plugin](https://github.com/Ensembl/VEP_plugins/blob/release/99/REVEL.pm) score less than 0.6 (default) or a user-specified value
 - BP5 "Variant found in a case with an alternate molecular basis for disease"
   - **Not** currently implemented
 - BP6 "Reputable source recently reports variant as benign, but the evidence is not available to the laboratory to perform an independent evaluation"
