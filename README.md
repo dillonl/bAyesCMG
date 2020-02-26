@@ -7,6 +7,10 @@ Applying the ACMG/AMP criteria often is tedious, manual and subject to human err
 ## Installation
 
 ## Usage
+Requires:
+1) a multi-sample merged (preferably joint called) VCF with three samples: proband, mom, dad
+  a) pre-processing of normalizing, decomposing and annotating with VEP is recommended
+2) a pedigree file describing the relatedness between the VCF samples
 
 ### Flags
 
@@ -53,6 +57,3 @@ Brief descriptions of the logic and application of evidence codes (Code "Descrip
 | **BP5** "Variant found in a case with an alternate molecular basis for disease" | **Not** currently implemented |
 | **BP6** "Reputable source recently reports variant as benign, but the evidence is not available to the laboratory to perform an independent evaluation" | **Not** currently implemented |
 | **BP7** "A synonymous (silent) variant for which splicing prediction algorithms predict no impact to the splice consensus sequence nor the creation of a new splice site AND the nucleotide is not highly conserved" | VEP `Consequence` is synonymous and **not** splice_region, or annotated from `SpliceRegion` plugin |
-
-## Limitations/Considerations
-- Requires trio (proband, mom, dad) VCF
