@@ -24,7 +24,6 @@ Assertions:
 ###  Filtering
 
 ## Evidence Codes
-Brief descriptions of the logic and application of evidence codes (Code "Description" - VarBayes logic for intepretation)
 
 | Evidence Code and Descrption | Implementation Description |
 | -------------------------- | ------------------------ |
