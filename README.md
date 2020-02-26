@@ -8,8 +8,7 @@ Applying the ACMG/AMP criteria often is tedious, manual and subject to human err
 
 ## Usage
 Requires:
-1) a multi-sample merged (preferably joint called) VCF with three samples: proband, mom, dad
-  a) pre-processing of normalizing, decomposing and annotating with VEP is recommended
+1) a multi-sample merged (preferably joint called) VCF with three samples: proband, mom, dad - pre-processing this VCF is recommended, normalizing, decomposing and annotating with VEP
 2) a pedigree file describing the relatedness between the VCF samples
 
 ### Flags
