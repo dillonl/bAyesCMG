@@ -1,4 +1,4 @@
-# VarBayes
+# bAyesCMG
 An applied Bayesian framework for the ACMG/AMP criteria
 
 ## Purpose
