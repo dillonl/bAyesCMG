@@ -201,7 +201,7 @@ class Variant:
         # Checking BP6
         self.evidenceCodes["BP6"] = 0
         # Checking BP7
-        self.evidenceCodes["BP7"] = self.CSQDict['Consequence'].count('synonymous_variant')
+        self.evidenceCodes["BP7"] = self.CSQDict['Consequence'].count('synonymous_variant')# and self.CSQDict['Consequence'].count('splice_region')
         if self.evidenceCodes["BP7"] == 0 or (len(''.join(self.CSQDict['DOMAINS'])) > 0):
             self.evidenceCodes["BP7"] = -1
 

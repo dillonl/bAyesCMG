@@ -8,6 +8,7 @@
 
 helpMessage="Usage: VarBayes [OPTION]\n
 \tDescription of VarBayes\n
+\t\t-h, --help                Print help instructions\n
 \t\t-v, --vcf_file            Input VCF File Path [REQUIRED]\n
 \t\t-p, --ped_file            Input PED File Path [REQUIRED]\n
 \t\t-r, --reference_file      Reference (FASTA) File Path [REQUIRED]\n
@@ -27,7 +28,7 @@ PARAMS=""
 while (( "$#" )); do
 	case "$1" in
 		-h|--help)
-			echo $helpMessage
+			echo -e $helpMessage
 			exit 0
 			;;
 		-c|--get_clinvar)
