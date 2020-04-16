@@ -6,23 +6,23 @@
 
 #vep -i varbayes_tmpdir/slivar.tmp -o varbayes_tmpdir/slivar.tmp.vep.vcf --quiet --fork 40 --fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" --cache --dir_cache /scratch/ucgd/lustre/work/u0691312/reference/ensembl/ --dir_plugins /scratch/ucgd/lustre/work/u0691312/reference/ensembl/Plugins/ --assembly GRCh37 --port 3337 --force_overwrite --fasta /scratch/ucgd/lustre/common/data/Reference/GRCh37/human_g1k_v37_decoy_phix.fasta --symbol --biotype --vcf --domains --pubmed --no_stats --plugin ExACpLI --plugin CSN --plugin REVEL,/scratch/ucgd/lustre/work/u0691312/reference/ensembl/Plugins/revel_all_chromosomes_vep.tsv.gz;
 
-helpMessage="Usage: VarBayes [OPTION]\n
-\tDescription of VarBayes\n
+helpMessage="Usage: bAyesCMG [OPTION]\n
+\tDescription of bAyesCMG\n
 \t\t-h, --help                Print help instructions\n
 \t\t-v, --vcf_file            Input VCF File Path [REQUIRED]\n
 \t\t-p, --ped_file            Input PED File Path [REQUIRED]\n
 \t\t-r, --reference_file      Reference (FASTA) File Path [REQUIRED]\n
-\t\t-c, --get_clinvar         Download latest ClinVar file [if no ClinVar file available in the data directory this arg will be ignored and ClinVar will be downloaded automatically reguardless]\n
 \t\t-g, --gnomad              GNOMAD File Path [REQUIRED]\n
 \t\t-d, --vep_cache_dir       VEP Cache Directory Path [REQUIRED]\n
 \t\t-u, --vep_plugin_dir      VEP Plugin Directory Path [REQUIRED]\n
 \t\t-l, --vep_revel_file      VEP REVEL File Path [REQUIRED]\n
-\t\t-t, --gnomad_af_threshold gnomAD_AF threshold (default value = 0.01)\n
-\t\t-j, --revel_af_threshold  REVEL threshold [Ask Matt] (default value = 0.6)\n
-\t\t-y, --prior_probability   Prior probability [Optional, default 0.1]\n
-\t\t-o, --odds_pathogenic     The odds of pathogenicity for 'Very Strong' [Optional, default 350]\n
-\t\t-e, --exponent            The exponent that sets the strength of Supporting/Moderate/Strong compared to 'Very Strong' [Optional, default 0.1]\n
-\t\t-f, --finished_vcf_path   File name of the output vcf [REQUIRED]\n"
+\t\t-f, --finished_vcf_path   File name of the output vcf [REQUIRED]\n\n
+\t\t-c, --get_clinvar         Download latest ClinVar file [OPTIONAL, if no ClinVar file available in the data directory this arg will be ignored and ClinVar will be downloaded automatically regardless]\n
+\t\t-t, --gnomad_af_threshold gnomAD_AF threshold [OPTIONAL, default = 0.01]\n
+\t\t-j, --revel_threshold  REVEL threshold [OPTIONAL, default = 0.6]\n
+\t\t-y, --prior_probability   Prior probability [OPTIONAL, default 0.1]\n
+\t\t-o, --odds_pathogenic     The odds of pathogenicity for 'Very Strong' [OPTIONAL, default 350]\n
+\t\t-e, --exponent            The exponent that sets the strength of Supporting/Moderate/Strong compared to 'Very Strong' [OPTIONAL, default 0.1]\n"
 
 PARAMS=""
 while (( "$#" )); do
@@ -106,6 +106,10 @@ if [[ -z $vcfFile || -z $pedFile || -z $gnomadFile || -z $referenceFile || -z $v
 	echo -e $helpMessage
 	exit 0
 fi
+if ! [ -x "$(command -v vep)" ]; then
+	echo 'Error: vep is not installed. Please install vep to continue' >&2
+	exit 1
+fi
 if [[ -z $gnomadAFThreshold ]]; then
 	gnomadAFThreshold='0.01'
 fi
@@ -121,7 +125,8 @@ fi
 if [ -z $exponent ]; then
 	exponent='2.0'
 fi
-tmpDirectory=data
+scriptDir="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
@@ -150,7 +155,7 @@ if [ $getClinVar -eq 1 ] || [ ! -f $clinVarFile ]; then
 		--plugin ExACpLI \
 		--plugin CSN \
 		--plugin REVEL,$vepRevelFile;
-	bgzip -f data/clinvar.grc37.vep.vcf
+	bgzip -f $tmpDirectory/clinvar.grc37.vep.vcf
 	tabix -f $clinVarFile
 fi
 tmpFile=$tmpDirectory/slivar.tmp
@@ -183,5 +188,5 @@ vep -i $tmpDirectory/slivar.tmp \
 	--plugin REVEL,$vepRevelFile;
 bgzip -f $tmpDirectory/slivar.tmp.vep.vcf
 tabix -f $tmpDirectory/slivar.tmp.vep.vcf.gz
-echo "python VarBayes.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-python VarBayes.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold
+echo "python $scriptDir/bAyesCMG.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
+python $scriptDir/bAyesCMG.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold
