@@ -70,7 +70,11 @@ def main():
         exit(0)
 
     clinVarData = getClinVarData(results.clinVar)
-    outputVCFFile = open(results.outputVcfFilePath, 'w')
+    outputVCFFile = None
+    if vcfFilePath.endswith('.gz'):
+        outputVCFFile = gzip.open(results.outputVcfFilePath, 'wb')
+    else:
+        outputVCFFile = open(results.outputVcfFilePath, 'w')
     families = pedFileParser.parserPedFile(results.pedFilePath)
     vcf = vcfFileParser.VUSVCF(families, results.vcfFilePath, results.priorProbability, results.oddsPathogenicity, results.exponent, results.gnomAD_AF_Threshold, results.REVEL_Threshold, outputVCFFile, clinVarData)
     vcf.processVariants()
