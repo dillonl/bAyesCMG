@@ -131,11 +131,11 @@ if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
 clinVarFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
-if [ $getClinVar -eq 1 ] || [ ! -f $clinVarFile ]; then
-	wget -O data/clinvar.grc37.vcf.gz ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz
-	wget -O data/clinvar.grc37.vcf.gz.tbi ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz.tbi
-	vep -i data/clinvar.grc37.vcf.gz \
-		-o data/clinvar.grc37.vep.vcf \
+if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
+	wget -O $clinVarFile ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz
+	wget -O $tmpDirectory/clinvar.grc37.vcf.gz.tbi ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz.tbi
+	vep -i $clinVarFile \
+		-o $tmpDirectory/clinvar.grc37.vep.vcf \
 		--quiet \
 		--fork 40 \
 		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
