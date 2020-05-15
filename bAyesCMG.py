@@ -10,7 +10,6 @@ from ftplib import FTP
 from dateutil import parser
 from datetime import datetime, timedelta
 from pytz import timezone
-import urllib.request
 
 def validateCommandLineArgs(results):
     if results.priorProbability != None:
