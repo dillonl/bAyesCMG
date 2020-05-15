@@ -131,6 +131,30 @@ if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
 clinVarFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
+
+echo "vep -i $clinVarFile \
+		-o $tmpDirectory/clinvar.grc37.vep.vcf \
+		--quiet \
+		--fork 40 \
+		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+		--cache \
+		--dir_cache $vepCacheDir \
+		--dir_plugins $vepPluginDir \
+		--assembly GRCh37 \
+		--port 3337 \
+		--force_overwrite \
+		--fasta $referenceFile \
+		--symbol \
+		--biotype \
+		--vcf \
+		--domains \
+		--pubmed \
+		--no_stats \
+		--plugin ExACpLI \
+		--plugin CSN \
+		--plugin REVEL,$vepRevelFile;
+	bgzip -f $tmpDirectory/clinvar.grc37.vep.vcf
+	tabix -f $clinVarFile"
 if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 	wget -O $clinVarFile ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz
 	wget -O $tmpDirectory/clinvar.grc37.vcf.gz.tbi ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz.tbi
@@ -159,7 +183,7 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 	tabix -f $clinVarFile
 fi
 tmpFile=$tmpDirectory/slivar.tmp
-externals/slivar/slivar expr \
+$scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile \
 	--ped $pedFile \
 	--gnotate $gnomadFile \
