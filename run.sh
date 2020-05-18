@@ -135,8 +135,9 @@ clinVarFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
 echo "vep -i $clinVarFile \
 		-o $tmpDirectory/clinvar.grc37.vep.vcf \
 		--quiet \
+        --keep_csq \
 		--fork 40 \
-		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+		--fields \"Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED\" \
 		--cache \
 		--dir_cache $vepCacheDir \
 		--dir_plugins $vepPluginDir \

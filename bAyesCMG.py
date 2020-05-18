@@ -71,7 +71,7 @@ def main():
 
     clinVarData = getClinVarData(results.clinVar)
     outputVCFFile = None
-    if vcfFilePath.endswith('.gz'):
+    if results.vcfFilePath.endswith('.gz'):
         outputVCFFile = gzip.open(results.outputVcfFilePath, 'wb')
     else:
         outputVCFFile = open(results.outputVcfFilePath, 'w')
