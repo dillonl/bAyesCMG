@@ -58,7 +58,7 @@ class Sample:
 def parserPedFile(pedFilePath):
     families = {}
     for line in open(pedFilePath):
-        if line.startswith('#'):
+        if 'Kindred_ID' in line:
             continue
         line = line.replace('\n', '')
         lineSplit = line.split()
