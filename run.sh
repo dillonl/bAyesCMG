@@ -130,18 +130,27 @@ tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
-clinVarFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
+assembly="GRCh37"
+clinVarDownloadPath="ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz"
+clinVarFile="$tmpDirectory/clinvar.grc37.vcf.gz"
+clinVarVepFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
+if [[ "$referenceFile" == *"38"* ]]; then
+	clinVarDownloadPath="https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz"
+	clinVarFile="$tmpDirectory/clinvar.grc38.vep.vcf.gz"
+	clinVarVepFile="$tmpDirectory/clinvar.grc38.vep.vcf.gz"
+	assembly="GRCh38"
+fi
 
-echo "vep -i $clinVarFile \
-		-o $tmpDirectory/clinvar.grc37.vep.vcf \
+if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
+	echo "vep -i $clinVarFile \
+		-o $clinVarVepFile \
 		--quiet \
-        --keep_csq \
 		--fork 40 \
 		--fields \"Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED\" \
 		--cache \
 		--dir_cache $vepCacheDir \
 		--dir_plugins $vepPluginDir \
-		--assembly GRCh37 \
+		--assembly $assembly \
 		--port 3337 \
 		--force_overwrite \
 		--fasta $referenceFile \
@@ -153,21 +162,21 @@ echo "vep -i $clinVarFile \
 		--no_stats \
 		--plugin ExACpLI \
 		--plugin CSN \
-		--plugin REVEL,$vepRevelFile;
-	bgzip -f $tmpDirectory/clinvar.grc37.vep.vcf
-	tabix -f $clinVarFile"
-if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
-	wget -O $clinVarFile ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz
-	wget -O $tmpDirectory/clinvar.grc37.vcf.gz.tbi ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz.tbi
-	vep -i $clinVarFile \
-		-o $tmpDirectory/clinvar.grc37.vep.vcf \
+		--plugin REVEL,$vepRevelFile \
+        --compress_output bgzip;
+	tabix -f $clinVarVepFile"
+
+	wget -O $clinVarFile $clinVarDownloadPath
+	wget -O $clinVarFile.tbi $clinVarDownloadPath.tbi
+	vep -i $clinVarFile
+		-o $clinVarVepFile \
 		--quiet \
 		--fork 40 \
 		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
 		--cache \
 		--dir_cache $vepCacheDir \
 		--dir_plugins $vepPluginDir \
-		--assembly GRCh37 \
+		--assembly $assembly \
 		--port 3337 \
 		--force_overwrite \
 		--fasta $referenceFile \
@@ -179,8 +188,8 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--no_stats \
 		--plugin ExACpLI \
 		--plugin CSN \
-		--plugin REVEL,$vepRevelFile;
-	bgzip -f $tmpDirectory/clinvar.grc37.vep.vcf
+		--plugin REVEL,$vepRevelFile \
+        --compress_output bgzip;
 	tabix -f $clinVarFile
 fi
 tmpFile=$tmpDirectory/slivar.tmp
@@ -198,7 +207,7 @@ vep -i $tmpDirectory/slivar.tmp \
 	--cache \
 	--dir_cache $vepCacheDir \
 	--dir_plugins $vepPluginDir \
-	--assembly GRCh37 \
+	--assembly $assembly \
 	--port 3337 \
 	--force_overwrite \
 	--fasta $referenceFile \
@@ -210,8 +219,8 @@ vep -i $tmpDirectory/slivar.tmp \
 	--no_stats \
 	--plugin ExACpLI \
 	--plugin CSN \
-	--plugin REVEL,$vepRevelFile;
-bgzip -f $tmpDirectory/slivar.tmp.vep.vcf
+	--plugin REVEL,$vepRevelFile \
+    --compress_output bgzip;
 tabix -f $tmpDirectory/slivar.tmp.vep.vcf.gz
 echo "python $scriptDir/bAyesCMG.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
 python $scriptDir/bAyesCMG.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold
