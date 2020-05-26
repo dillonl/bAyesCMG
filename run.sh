@@ -167,7 +167,7 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 
 	wget -O $clinVarFile $clinVarDownloadPath
 	wget -O $clinVarFile.tbi $clinVarDownloadPath.tbi
-	vep -i $clinVarFile
+	vep -i $clinVarFile \
 		-o $clinVarVepFile \
 		--quiet \
 		--fork 40 \
@@ -190,15 +190,22 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
         --compress_output bgzip;
 	tabix -f $clinVarFile
 fi
-tmpFile=$tmpDirectory/slivar.tmp
+tmpSlivarFile=$tmpDirectory/slivar.tmp.vcf
+slivarVepFile=$tmpDirectory/slivar.vep.vcf.gz
+echo "$scriptDir/externals/slivar/slivar expr \
+	--vcf $vcfFile \
+	--ped $pedFile \
+	--gnotate $gnomadFile \
+	--out-vcf $tmpSlivarFile;"
+
 $scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile \
 	--ped $pedFile \
 	--gnotate $gnomadFile \
-	--out-vcf $tmpDirectory/slivar.tmp;
+	--out-vcf $tmpSlivarFile;
 
-vep -i $tmpDirectory/slivar.tmp \
-	-o $tmpDirectory/slivar.tmp.vep.vcf \
+vep -i $tmpSlivarFile \
+	-o $slivarVepFile \
     --quiet \
 	--fork 40 \
 	--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
@@ -218,6 +225,6 @@ vep -i $tmpDirectory/slivar.tmp \
 	--plugin CSN \
 	--plugin REVEL,$vepRevelFile \
     --compress_output bgzip;
-tabix -f $tmpDirectory/slivar.tmp.vep.vcf.gz
-echo "python $scriptDir/bAyesCMG.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-python $scriptDir/bAyesCMG.py -v $tmpDirectory/slivar.tmp.vep.vcf.gz -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold
+tabix -f $slivarVepFile
+echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
+python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold
