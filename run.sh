@@ -130,7 +130,7 @@ tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
-assembly="GRCh37"
+assembly="GRCh37  --port 330 \ "
 clinVarDownloadPath="ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz"
 clinVarFile="$tmpDirectory/clinvar.grc37.vcf.gz"
 clinVarVepFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
@@ -151,7 +151,6 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--dir_cache $vepCacheDir \
 		--dir_plugins $vepPluginDir \
 		--assembly $assembly \
-		--port 3337 \
 		--force_overwrite \
 		--fasta $referenceFile \
 		--symbol \
@@ -177,7 +176,6 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--dir_cache $vepCacheDir \
 		--dir_plugins $vepPluginDir \
 		--assembly $assembly \
-		--port 3337 \
 		--force_overwrite \
 		--fasta $referenceFile \
 		--symbol \
@@ -208,7 +206,6 @@ vep -i $tmpDirectory/slivar.tmp \
 	--dir_cache $vepCacheDir \
 	--dir_plugins $vepPluginDir \
 	--assembly $assembly \
-	--port 3337 \
 	--force_overwrite \
 	--fasta $referenceFile \
 	--symbol \
