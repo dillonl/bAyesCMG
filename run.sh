@@ -143,6 +143,10 @@ if [[ "$referenceFile" == *"38"* ]]; then
 	assembly="GRCh38"
 fi
 
+if [[ "$finishedVCFPath" == *\.gz ]]; then
+	finishedVCFPath=${finishedVCFPath::-3}
+fi
+
 if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 	#cd $tmpDirectory ;
 	#echo "cd $tmpDirectory" ;
@@ -169,7 +173,7 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--plugin ExACpLI \
 		--plugin REVEL,$vepRevelFile ; \
     bgzip -f $clinVarVepFile
-	tabix -f $clinVarVepGZFile"
+	tabix -p -f $clinVarVepGZFile"
 
 	wget -P $tmpDirectory $clinVarDownloadPath
 	wget -P $tmpDirectory $clinVarDownloadPath.tbi
@@ -195,7 +199,7 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--plugin ExACpLI \
 		--plugin REVEL,$vepRevelFile ;
 	bgzip -f $clinVarVepFile ;
-	tabix -f $clinVarVepGZFile ;
+	tabix -p -f $clinVarVepGZFile ;
 fi
 
 tmpSlivarFile=$tmpDirectory/slivar.tmp.vcf
@@ -238,4 +242,4 @@ if [[ "$slivarVepFile" == *\.gz ]]; then
 fi
 python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
 bgzip -f $finishedVCFPath ;
-tabix -f $finishedVCFPath.gz ;
+tabix -p -f $finishedVCFPath.gz ;
