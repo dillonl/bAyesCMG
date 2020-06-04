@@ -3,7 +3,6 @@ import pandas as pd
 import argparse
 import vcfFileParser
 import pedFileParser
-import gzip
 import os.path
 from cyvcf2 import VCF
 from ftplib import FTP

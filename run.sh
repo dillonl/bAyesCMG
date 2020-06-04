@@ -132,21 +132,27 @@ if [ ! -d "$tmpDirectory" ]; then
 fi
 assembly="GRCh37  --port 330 \ "
 clinVarDownloadPath="ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz"
-clinVarFile="$tmpDirectory/clinvar.grc37.vcf.gz"
-clinVarVepFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
+clinVarFile="$tmpDirectory/clinvar.vcf.gz"
+clinVarVepFile="$tmpDirectory/clinvar.grc37.vep.vcf"
+clinVarVepGZFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
 if [[ "$referenceFile" == *"38"* ]]; then
 	clinVarDownloadPath="https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz"
-	clinVarFile="$tmpDirectory/clinvar.grc38.vep.vcf.gz"
-	clinVarVepFile="$tmpDirectory/clinvar.grc38.vep.vcf.gz"
+	clinVarFile="$tmpDirectory/clinvar.vcf.gz"
+	clinVarVepFile="$tmpDirectory/clinvar.grc38.vep.vcf"
+	clinVarVepGZFile="$tmpDirectory/clinvar.grc38.vep.vcf.gz"
 	assembly="GRCh38"
 fi
 
 if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
-	echo "vep -i $clinVarFile \
+	#cd $tmpDirectory ;
+	#echo "cd $tmpDirectory" ;
+	echo "wget -P $tmpDirectory $clinVarDownloadPath" ;
+	echo "wget -P $tmpDirectory $clinVarDownloadPath.tbi" ;
+	echo "vep -i $tmpDirectory/clinvar.vcf.gz \
 		-o $clinVarVepFile \
 		--quiet \
 		--fork 40 \
-		--fields \"Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED\" \
+		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,MAX_AF,gnomAD_AF,ExACpLI,REVEL,DOMAINS" \
 		--cache \
 		--dir_cache $vepCacheDir \
 		--dir_plugins $vepPluginDir \
@@ -156,22 +162,23 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--symbol \
 		--biotype \
 		--vcf \
+		--max_af \
+		--af_gnomad \
 		--domains \
-		--pubmed \
 		--no_stats \
 		--plugin ExACpLI \
-		--plugin CSN \
-		--plugin REVEL,$vepRevelFile \
-        --compress_output bgzip;
-	tabix -f $clinVarVepFile"
+		--plugin REVEL,$vepRevelFile ; \
+    bgzip -f $clinVarVepFile
+	tabix -f $clinVarVepGZFile"
 
-	wget -O $clinVarFile $clinVarDownloadPath
-	wget -O $clinVarFile.tbi $clinVarDownloadPath.tbi
-	vep -i $clinVarFile \
+	wget -P $tmpDirectory $clinVarDownloadPath
+	wget -P $tmpDirectory $clinVarDownloadPath.tbi
+
+	vep -i $tmpDirectory/clinvar.vcf.gz \
 		-o $clinVarVepFile \
 		--quiet \
 		--fork 40 \
-		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,MAX_AF,gnomAD_AF,ExACpLI,REVEL,DOMAINS" \
 		--cache \
 		--dir_cache $vepCacheDir \
 		--dir_plugins $vepPluginDir \
@@ -181,17 +188,18 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--symbol \
 		--biotype \
 		--vcf \
+		--max_af \
+		--af_gnomad \
 		--domains \
-		--pubmed \
 		--no_stats \
 		--plugin ExACpLI \
-		--plugin CSN \
-		--plugin REVEL,$vepRevelFile \
-        --compress_output bgzip;
-	tabix -f $clinVarFile
+		--plugin REVEL,$vepRevelFile ;
+	bgzip -f $clinVarVepFile ;
+	tabix -f $clinVarVepGZFile ;
 fi
+
 tmpSlivarFile=$tmpDirectory/slivar.tmp.vcf
-slivarVepFile=$tmpDirectory/slivar.vep.vcf.gz
+slivarVepFile=$tmpDirectory/slivar.vep.vcf
 echo "$scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile \
 	--ped $pedFile \
@@ -223,9 +231,11 @@ vep -i $tmpSlivarFile \
 	--no_stats \
 	--plugin ExACpLI \
 	--plugin CSN \
-	--plugin REVEL,$vepRevelFile \
-    --compress_output bgzip;
-echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
-bgzip -f $slivarVepFile ;
-tabix -f "$slivarVepFile".gz ;
+	--plugin REVEL,$vepRevelFile;
+echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
+if [[ "$slivarVepFile" == *\.gz ]]; then
+	slivarVepFile=${slivarVepFile::-3};
+fi
+python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
+bgzip -f $finishedVCFPath ;
+tabix -f $finishedVCFPath.gz ;
