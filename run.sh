@@ -199,7 +199,7 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 		--plugin ExACpLI \
 		--plugin REVEL,$vepRevelFile ;
 	bgzip -f $clinVarVepFile ;
-	tabix -p -f $clinVarVepGZFile ;
+	tabix -p vcf -f $clinVarVepGZFile ;
 fi
 
 tmpSlivarFile=$tmpDirectory/slivar.tmp.vcf
@@ -242,4 +242,4 @@ if [[ "$slivarVepFile" == *\.gz ]]; then
 fi
 python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
 bgzip -f $finishedVCFPath ;
-tabix -p -f $finishedVCFPath.gz ;
+tabix -p vcf -f $finishedVCFPath.gz ;
