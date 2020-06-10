@@ -205,12 +205,14 @@ slivarVepFile=./slivar.vep.vcf.gz
 echo "$scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile \
 	--ped $pedFile \
+	--info \"INFO.gnomad_popmax_af < $gnomadAFThreshold\" \
 	--gnotate $gnomadFile \
 	--out-vcf $tmpSlivarFile;"
 
 $scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile \
 	--ped $pedFile \
+	--info "INFO.gnomad_popmax_af < $gnomadAFThreshold" \
 	--gnotate $gnomadFile \
 	--out-vcf $tmpSlivarFile;
 
