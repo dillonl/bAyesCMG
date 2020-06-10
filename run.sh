@@ -148,8 +148,6 @@ if [[ "$finishedVCFPath" == *\.gz ]]; then
 fi
 
 if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
-	#cd $tmpDirectory ;
-	#echo "cd $tmpDirectory" ;
 	echo "wget -P $tmpDirectory $clinVarDownloadPath" ;
 	echo "wget -P $tmpDirectory $clinVarDownloadPath.tbi" ;
 	echo "vep -i $tmpDirectory/clinvar.vcf.gz \
@@ -202,8 +200,8 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 	tabix -p vcf -f $clinVarVepGZFile ;
 fi
 
-tmpSlivarFile=$tmpDirectory/slivar.tmp.vcf
-slivarVepFile=$tmpDirectory/slivar.vep.vcf
+tmpSlivarFile=./slivar.tmp.vcf.gz
+slivarVepFile=./slivar.vep.vcf.gz
 echo "$scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile \
 	--ped $pedFile \
@@ -215,6 +213,28 @@ $scriptDir/externals/slivar/slivar expr \
 	--ped $pedFile \
 	--gnotate $gnomadFile \
 	--out-vcf $tmpSlivarFile;
+
+echo "vep -i $tmpSlivarFile \
+	-o $slivarVepFile \
+    --quiet \
+	--fork 40 \
+	--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+	--cache \
+	--dir_cache $vepCacheDir \
+	--dir_plugins $vepPluginDir \
+	--assembly $assembly \
+	--force_overwrite \
+	--fasta $referenceFile \
+	--symbol \
+	--biotype \
+	--vcf \
+	--domains \
+	--pubmed \
+	--no_stats \
+	--plugin ExACpLI \
+	--plugin CSN \
+	--compress_output gzip \
+	--plugin REVEL,$vepRevelFile;"
 
 vep -i $tmpSlivarFile \
 	-o $slivarVepFile \
@@ -235,11 +255,12 @@ vep -i $tmpSlivarFile \
 	--no_stats \
 	--plugin ExACpLI \
 	--plugin CSN \
+	--compress_output gzip \
 	--plugin REVEL,$vepRevelFile;
 echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-if [[ "$slivarVepFile" == *\.gz ]]; then
-	slivarVepFile=${slivarVepFile::-3};
-fi
+#if [[ "$slivarVepFile" == *\.gz ]]; then
+#	slivarVepFile=${slivarVepFile::-3};
+#fi
 python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
 bgzip -f $finishedVCFPath ;
 tabix -p vcf -f $finishedVCFPath.gz ;
