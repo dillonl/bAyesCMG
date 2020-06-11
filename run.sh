@@ -200,17 +200,32 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 	tabix -p vcf -f $clinVarVepGZFile ;
 fi
 
+tmpSamplesFile=bayescmg_tmp_samples.txt
+cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
+
+echo "zcat $vcfFile \
+	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
+	| bcftools norm -m - -w 10000 -f $referenceFile \
+	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $vcfFile.bcftools.vcf.gz"
+
+zcat $vcfFile \
+	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
+	| bcftools norm -m - -w 10000 -f $referenceFile \
+	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $vcfFile.bcftools.vcf.gz
+
+rm -f $tmpSamplesFile
+
 tmpSlivarFile=./slivar.tmp.vcf.gz
 slivarVepFile=./slivar.vep.vcf.gz
 echo "$scriptDir/externals/slivar/slivar expr \
-	--vcf $vcfFile \
+	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
 	--info \"INFO.gnomad_popmax_af < $gnomadAFThreshold\" \
 	--gnotate $gnomadFile \
 	--out-vcf $tmpSlivarFile;"
 
 $scriptDir/externals/slivar/slivar expr \
-	--vcf $vcfFile \
+	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
 	--info "INFO.gnomad_popmax_af < $gnomadAFThreshold" \
 	--gnotate $gnomadFile \
