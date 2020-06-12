@@ -55,8 +55,14 @@ class Variant:
         # very strong PVS1
         highCount = self.CSQDict['IMPACT'].count("HIGH")
         if highCount > 0:
-            self.PStCounts = 1
-            self.evidenceCodes["PVS1"] = 1
+            motherGeno = self.variant.genotypes[self.families.getMotherIDFromVCFIdx()]
+            fatherGeno = self.variant.genotypes[self.families.getFatherIDFromVCFIdx()]
+            individualGeno = self.variant.genotypes[self.families.getIndividualIDFromVCFIdx()]
+            if ((motherGeno[0] == 0 and motherGeno[1] == 0 and
+                 fatherGeno[0] == 0 and fatherGeno[1] == 0) and
+                ((individualGeno[0] == 0 and individualGeno[1] == 1) or (individualGeno[0] == 1 and individualGeno[1] == 0))):
+                self.PStCounts = 1
+                self.evidenceCodes["PVS1"] = 1
         else:
             self.evidenceCodes["PVS1"] = -1
 
