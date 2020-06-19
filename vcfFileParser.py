@@ -64,6 +64,8 @@ class VUSVCF:
                 if key in self.clinVarData:
                     matchingClinVarVariants.append(self.clinVarData[key])
             var = variant.Variant(v, self.families, self.gnomAD_AF_Threshold, self.REVEL_Threshold, getCSQList, matchingClinVarVariants)
+            if not var.printVariant:
+                continue
             posterior = self.getPosterior(var)
             v.INFO["Evidence_Codes"] = var.getEvidenceCodesString()
             v.INFO["Posterior_Pathogenic_Probability"] = str(format(self.getPosterior(var), '.3f'))

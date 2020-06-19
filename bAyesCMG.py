@@ -53,6 +53,7 @@ def getClinVarData(clinVarPath):
 
 
 def main():
+
     scriptPath = os.path.abspath(os.path.dirname(sys.argv[0]))
     parser = argparse.ArgumentParser(description="Naive Bayes framework for ACMG/AMP variant classification")
     parser.add_argument('-d', action="store", dest="outputVcfFilePath", help="path to the output VCF file", required=True)
