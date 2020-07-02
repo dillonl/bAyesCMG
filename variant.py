@@ -65,11 +65,14 @@ class Variant:
 
     def checkValidAffectedAndUnaffectedGenoType(self):
         affectedGeno = list(self.affectedGenos.values())[0]
+        affectedGenoSum = sum(affectedGeno)
         # for geno in self.affectedGenos.values():
             # affectedGeno = geno
         # affectedGeno = self.affectedGenos.values()[0]
         for sampleGenotype in self.unaffectedGenos.values():
-            if (sum(affectedGeno) == 1 and sum(sampleGenotype) == 0) or (sum(affectedGeno) == 2 and sum(sampleGenotype) == 1):
+            if (affectedGenoSum == sum(sampleGenotype)):
+                return False
+            if (affectedGenoSum == 1 and sum(sampleGenotype) == 0) or (affectedGenoSum == 2 and sum(sampleGenotype) == 1):
                 return True
         return False
 
