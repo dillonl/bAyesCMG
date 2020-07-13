@@ -17,6 +17,13 @@ class Family:
         self.AllFamilySamplesDict[maternalSample.individualID] = maternalSample
         self.maternalSample = maternalSample
 
+    def getProband(self):
+        affectedSamples = self.getAllAffectedIndividuals()
+        for affSamp in affectedSamples:
+            if affSamp.maternalSample != None and affSamp.paternalSample != None:
+                return affSam
+        return None
+
     def setChildSample(self, childSample):
         self.AllFamilySamplesDict[childSample.individualID] = childSample
         self.childSample = childSample

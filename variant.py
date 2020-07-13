@@ -28,9 +28,12 @@ class Variant:
         self.unaffectedGenos = self.getUnaffectedGenotypes()
         self.printVariant = True
         self.isCorrectlySegragated = self.checkIsCorrectlySegregated()
+        self.proband = family.getProband()
 
-        if not self.areAllGenotypesValid():
-            eprint("Invalid Genotype at ", self.variant.CHROM, std(position))
+        if self.proband == None or self.variant.genotypes[self.proband.sampleIdx].count('1') == 0:
+            self.printVariant = False
+        elif not self.areAllGenotypesValid():
+            print("Invalid Genotype at ", self.variant.CHROM, std(position))
             self.printVariant = False
         elif len(self.affectedGenos) == 0 or self.childGeno.count('0') >= 2 or self.affectedsGenotypeMismatch():
             self.printVariant = False
