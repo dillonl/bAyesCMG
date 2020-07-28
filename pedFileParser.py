@@ -20,8 +20,8 @@ class Family:
     def getProband(self):
         affectedSamples = self.getAllAffectedIndividuals()
         for affSamp in affectedSamples:
-            if affSamp.maternalSample != None and affSamp.paternalSample != None:
-                return affSam
+            if affSamp.maternalID in self.AllFamilySamplesDict and affSamp.paternalID in self.AllFamilySamplesDict:
+                return affSamp
         return None
 
     def setChildSample(self, childSample):

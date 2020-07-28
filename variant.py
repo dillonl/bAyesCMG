@@ -23,27 +23,47 @@ class Variant:
         self.family = family
         self.maternalGeno = self.variant.genotypes[self.family.getMaternalSample().sampleIdx]
         self.paternalGeno = self.variant.genotypes[self.family.getPaternalSample().sampleIdx]
-        self.childGeno = self.variant.genotypes[self.family.getChildSample().sampleIdx]
+        self.probandGeno = self.variant.genotypes[self.family.getChildSample().sampleIdx]
         self.affectedGenos = self.getAffectedGenotypes()
         self.unaffectedGenos = self.getUnaffectedGenotypes()
-        self.printVariant = True
+        self.affectedGenoNumbers = self.getAffectedGenotypeNumbers()
+        self.unaffectedGenoNumbers = self.getUnaffectedGenotypeNumbers()
+        self.maternalGenoNumber = self.getGenoNumber(self.maternalGeno)
+        self.paternalGenoNumber = self.getGenoNumber(self.paternalGeno)
+        self.probandGenoNumber = self.getGenoNumber(self.probandGeno)
         self.isCorrectlySegragated = self.checkIsCorrectlySegregated()
+
+        self.printVariant = True
         self.proband = family.getProband()
 
-        if self.proband == None or self.variant.genotypes[self.proband.sampleIdx].count('1') == 0:
-            self.printVariant = False
-        elif not self.areAllGenotypesValid():
-            print("Invalid Genotype at ", self.variant.CHROM, std(position))
-            self.printVariant = False
-        elif len(self.affectedGenos) == 0 or self.childGeno.count('0') >= 2 or self.affectedsGenotypeMismatch():
+        if not self.validateVariants():
             self.printVariant = False
         else:
             self.parseLine()
 
-    def areAllGenotypesValid(self):
-        for geno in self.variant.genotypes:
-            if geno[0] == '.' or geno[1] == '.':
+
+    def getGenoNumber(self, geno):
+        return geno.count(1)
+
+    def validateVariants(self):
+        probandGenoNumber = self.getGenoNumber(self.probandGeno)
+        if self.probandGenoNumber <= 0:
+            return False
+        '''
+        for affectedGenoNumber in self.affectedGenoNumbers:
+            if affectedGenoNumber != self.probandGenoNumber:
                 return False
+        for unaffectedGenoNumber in self.unaffectedGenoNumbers:
+            if unaffectedGenoNumber == self.probandGenoNumber:
+                return False
+        maternalSample = self.family.getMaternalSample()
+        paternalSample = self.family.getPaternalSample()
+        if not maternalSample.affected and not paternalSample.affected:
+            if self.maternalGenoNumber == 0 and self.paternalGenoNumber == 0 and selfprobandGenoNumber != 1:
+                return False
+            if ((self.maternalGenoNumber + self.paternalGenoNumber) == 1) and selfprobandGenoNumber != 2:
+                return False
+        '''
         return True
 
     def getAffectedGenotypes(self):
@@ -58,20 +78,29 @@ class Variant:
             unaffectedGenotypes[unaffectedSample.individualID] = self.variant.genotypes[unaffectedSample.sampleIdx]
         return unaffectedGenotypes
 
+    def getAffectedGenotypeNumbers(self):
+        affectedGenotypes = {}
+        for affectedSample in self.family.getAllAffectedIndividuals():
+            affectedGenotypes[affectedSample.individualID] = self.getGenoNumber(self.variant.genotypes[affectedSample.sampleIdx])
+        return affectedGenotypes
+
+    def getUnaffectedGenotypeNumbers(self):
+        unaffectedGenotypes = {}
+        for unaffectedSample in self.family.getAllUnaffectedIndividuals():
+            unaffectedGenotypes[unaffectedSample.individualID] = self.getGenoNumber(self.variant.genotypes[unaffectedSample.sampleIdx])
+        return unaffectedGenotypes
+
     def affectedsGenotypeMismatch(self):
         affectedGeno = ''
         for affectedSample in self.family.getAllAffectedIndividuals():
-            if self.variant.genotypes[affectedSample.sampleIdx] != affectedGeno and affectedGeno != '':
-                return True
             affectedGeno = self.variant.genotypes[affectedSample.sampleIdx]
+            if self.variant.genotypes[affectedSample.sampleIdx] != affectedGeno:
+                return True
         return False
 
     def checkValidAffectedAndUnaffectedGenoType(self):
         affectedGeno = list(self.affectedGenos.values())[0]
         affectedGenoSum = sum(affectedGeno)
-        # for geno in self.affectedGenos.values():
-            # affectedGeno = geno
-        # affectedGeno = self.affectedGenos.values()[0]
         for sampleGenotype in self.unaffectedGenos.values():
             if (affectedGenoSum == sum(sampleGenotype)):
                 return False
@@ -80,27 +109,27 @@ class Variant:
         return False
 
     def checkIsCorrectlySegregated(self):
-        if (sum(self.childGeno) == 1 and (sum(self.maternalGeno) + sum(self.paternalGeno) == 1)):
+        # this is now checked before with slivar
+        return True
+        '''
+        if (getGenoNumber(self.childGeno) == 1 and (getGenoNumber(self.maternalGeno) + getGenoNumber(self.paternalGeno) == 1)):
             return True
-        elif (sum(self.childGeno) == 2 and (sum(self.maternalGeno) >= 1 and sum(self.paternalGeno) >= 1)):
+        elif (getGenoNumber(self.childGeno) == 2 and (getGenoNumber(self.maternalGeno) >= 1 and getGenoNumber(self.paternalGeno) >= 1)):
             return True
         else:
             return False
+        '''
 
     def parseLine(self):
-        if self.affectedsGenotypeMismatch():
-            for code in self.evidenceCodes:
-                self.evidenceCodes[code] = -1
-        else:
-            self.populateCSQ()
-            self.processPVstCounts()
-            self.processPStCounts()
-            self.processPMCounts()
-            self.processPSuCounts()
+        self.populateCSQ()
+        self.processPVstCounts()
+        self.processPStCounts()
+        self.processPMCounts()
+        self.processPSuCounts()
 
-            self.processBAsCounts()
-            self.processBStCounts()
-            self.processBSuCounts()
+        self.processBAsCounts()
+        self.processBStCounts()
+        self.processBSuCounts()
 
     def getCSQDict(self, variant):
         CSQDict = {v:[] for i, v in enumerate(self.CSQList)} # produces a dictionary of empty arrays
@@ -133,7 +162,7 @@ class Variant:
             if self.evidenceCodes["PS1"] != 1:
                 self.evidenceCodes["PS1"] = -1
         # Checking PS2
-        if (sum(self.childGeno) == 1 and sum(self.maternalGeno) == 0 and sum(self.paternalGeno) == 0):
+        if (sum(self.probandGeno) == 1 and sum(self.maternalGeno) == 0 and sum(self.paternalGeno) == 0):
             self.evidenceCodes["PS2"] = 1
         else:
             self.evidenceCodes["PS2"] = 0
