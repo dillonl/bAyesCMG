@@ -236,7 +236,7 @@ $scriptDir/externals/slivar/slivar expr \
 	--info "INFO.gnomad_popmax_af < $gnomadAFThreshold" \
 	--gnotate $gnomadFile \
     --family-expr 'denovo:fam.every(segregating_denovo)' \
-    --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
+    --family-expr 'x_denovo:(variant.CHROM == "X" || variant.CHROM == "chrX") && fam.every(segregating_denovo_x)' \
     --family-expr 'recessive:fam.every(segregating_recessive)' \
     --family-expr 'dominant:fam.every(segregating_dominant)' \
 	--out-vcf $tmpSlivarFile;
