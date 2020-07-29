@@ -1,11 +1,5 @@
 #!/bin/bash
 
-#./run.sh -v ../vcfs/platinum/platinum-exome.vcf -p ../vcfs/platinum/platinum.ped -r /scratch/ucgd/lustre/common/data/Reference/GRCh37/human_g1k_v37_decoy_phix.fasta -g /scratch/ucgd/lustre-work/marth/u0691312/reference/slivar.gnomad.hg37.added.annotations.zip -d /scratch/ucgd/lustre/work/u0691312/reference/ensembl/ -u /scratch/ucgd/lustre/work/u0691312/reference/ensembl/Plugins/ -l /scratch/ucgd/lustre/work/u0691312/reference/ensembl/Plugins/revel_all_chromosomes_vep.tsv.gz
-
-# /uufs/chpc.utah.edu/common/HIPAA/u0691312/scripts/vep_grch37.sh # here are some flags
-
-#vep -i varbayes_tmpdir/slivar.tmp -o varbayes_tmpdir/slivar.tmp.vep.vcf --quiet --fork 40 --fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" --cache --dir_cache /scratch/ucgd/lustre/work/u0691312/reference/ensembl/ --dir_plugins /scratch/ucgd/lustre/work/u0691312/reference/ensembl/Plugins/ --assembly GRCh37 --port 3337 --force_overwrite --fasta /scratch/ucgd/lustre/common/data/Reference/GRCh37/human_g1k_v37_decoy_phix.fasta --symbol --biotype --vcf --domains --pubmed --no_stats --plugin ExACpLI --plugin CSN --plugin REVEL,/scratch/ucgd/lustre/work/u0691312/reference/ensembl/Plugins/revel_all_chromosomes_vep.tsv.gz;
-
 helpMessage="Usage: bAyesCMG [OPTION]\n
 \tDescription of bAyesCMG\n
 \t\t-h, --help                Print help instructions\n
