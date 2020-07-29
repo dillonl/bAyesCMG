@@ -216,7 +216,7 @@ echo "$scriptDir/externals/slivar/slivar expr \
 	--ped $pedFile \
 	--pass-only \
 	--js $scriptDir/externals/slivar/slivar-functions.js \
-	--info 'INFO.gnomad_popmax_af < $gnomadAFThreshold\" && variant.FILTER == \"PASS\" && variant.ALT[0] != \"*\"' \
+	--info \"INFO.gnomad_popmax_af < $gnomadAFThreshold && variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
 	--gnotate $gnomadFile \
     --family-expr 'denovo:fam.every(segregating_denovo)' \
     --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
@@ -229,7 +229,7 @@ $scriptDir/externals/slivar/slivar expr \
 	--ped $pedFile \
 	--pass-only \
 	--js $scriptDir/externals/slivar/slivar-functions.js \
-	--info 'INFO.gnomad_popmax_af < $gnomadAFThreshold && variant.FILTER == "PASS" && variant.ALT[0] != "*"' \
+	--info "INFO.gnomad_popmax_af < $gnomadAFThreshold && variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
 	--gnotate $gnomadFile \
     --family-expr 'denovo:fam.every(segregating_denovo)' \
     --family-expr 'x_denovo:(variant.CHROM == "X" || variant.CHROM == "chrX") && fam.every(segregating_denovo_x)' \
