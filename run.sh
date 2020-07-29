@@ -220,20 +220,22 @@ slivarVepFile=./slivar.vep.vcf.gz
 echo "$scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
-    --js $scriptDir/externals/slivar/slivar-functions.js \
-	--info \"INFO.gnomad_popmax_af < $gnomadAFThreshold\" &&  && variant.FILTER == \"PASS\" &&  variant.ALT[0] != \"*\" \
+	--pass-only \
+	--js $scriptDir/externals/slivar/slivar-functions.js \
+	--info 'INFO.gnomad_popmax_af < $gnomadAFThreshold\" && variant.FILTER == \"PASS\" && variant.ALT[0] != \"*\"' \
 	--gnotate $gnomadFile \
     --family-expr 'denovo:fam.every(segregating_denovo)' \
     --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
     --family-expr 'recessive:fam.every(segregating_recessive)' \
     --family-expr 'dominant:fam.every(segregating_dominant)' \
-	--out-vcf $tmpSlivarFile;"
+	--out-vcf $tmpSlivarFile"
 
 $scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
+	--pass-only \
 	--js $scriptDir/externals/slivar/slivar-functions.js \
-	--info "INFO.gnomad_popmax_af < $gnomadAFThreshold" && variant.FILTER == "PASS" &&  variant.ALT[0] != "*" \
+	--info 'INFO.gnomad_popmax_af < $gnomadAFThreshold && variant.FILTER == "PASS" && variant.ALT[0] != "*"' \
 	--gnotate $gnomadFile \
     --family-expr 'denovo:fam.every(segregating_denovo)' \
     --family-expr 'x_denovo:(variant.CHROM == "X" || variant.CHROM == "chrX") && fam.every(segregating_denovo_x)' \
@@ -284,10 +286,11 @@ vep -i $tmpSlivarFile \
 	--plugin CSN \
 	--compress_output gzip \
 	--plugin REVEL,$vepRevelFile;
+
 echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-#if [[ "$slivarVepFile" == *\.gz ]]; then
-#	slivarVepFile=${slivarVepFile::-3};
-#fi
 python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
 bgzip -f $finishedVCFPath ;
 tabix -p vcf -f $finishedVCFPath.gz ;
+rm -rf $slivarVepFile
+rm -rf $tmpSlivarFile
+rm -rf $vcfFile.bcftools.vcf.gz
