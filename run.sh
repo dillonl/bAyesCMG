@@ -124,7 +124,7 @@ tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
-assembly="GRCh37  --port 330 \ "
+assembly="GRCh37  --port 3337 \ "
 clinVarDownloadPath="ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz"
 clinVarFile="$tmpDirectory/clinvar.vcf.gz"
 clinVarVepFile="$tmpDirectory/clinvar.grc37.vep.vcf"
