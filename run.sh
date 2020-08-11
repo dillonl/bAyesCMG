@@ -124,14 +124,16 @@ tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
-assembly="GRCh37  --port 330 \ "
+assembly="GRCh37  --port 3337 \ "
 clinVarDownloadPath="ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz"
 clinVarFile="$tmpDirectory/clinvar.vcf.gz"
+clinVarHGGZFile="$tmpDirectory/clinvar.grc37.vcf.gz"
 clinVarVepFile="$tmpDirectory/clinvar.grc37.vep.vcf"
 clinVarVepGZFile="$tmpDirectory/clinvar.grc37.vep.vcf.gz"
 if [[ "$referenceFile" == *"38"* ]]; then
 	clinVarDownloadPath="https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz"
 	clinVarFile="$tmpDirectory/clinvar.vcf.gz"
+	clinVarHGGZFile="$tmpDirectory/clinvar.grc38.vcf.gz"
 	clinVarVepFile="$tmpDirectory/clinvar.grc38.vep.vcf"
 	clinVarVepGZFile="$tmpDirectory/clinvar.grc38.vep.vcf.gz"
 	assembly="GRCh38"
@@ -141,10 +143,11 @@ if [[ "$finishedVCFPath" == *\.gz ]]; then
 	finishedVCFPath=${finishedVCFPath::-3}
 fi
 
-if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
+if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
 	echo "wget -P $tmpDirectory $clinVarDownloadPath" ;
 	echo "wget -P $tmpDirectory $clinVarDownloadPath.tbi" ;
-	echo "vep -i $tmpDirectory/clinvar.vcf.gz \
+	echo "mv $clinVarFile $clinVarHGGZFile";
+	echo "vep -i $clinVarHGGZFile \
 		-o $clinVarVepFile \
 		--quiet \
 		--fork 40 \
@@ -169,8 +172,9 @@ if [ -z getClinVar ] || [ ! -f "$clinVarFile" ]; then
 
 	wget -P $tmpDirectory $clinVarDownloadPath
 	wget -P $tmpDirectory $clinVarDownloadPath.tbi
+	mv $clinVarFile $clinVarHGGZFile
 
-	vep -i $tmpDirectory/clinvar.vcf.gz \
+	vep -i $clinVarHGGZFile \
 		-o $clinVarVepFile \
 		--quiet \
 		--fork 40 \
