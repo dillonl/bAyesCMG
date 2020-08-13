@@ -214,13 +214,14 @@ zcat $vcfFile \
 rm -f $tmpSamplesFile
 
 tmpSlivarFile=./slivar.tmp.vcf.gz
+tmpChSlivarFile=./slivar.ch.tmp.vcf.gz
+tmpAllSlivarFile=./slivar.all.tmp.vcf.gz
 slivarVepFile=./slivar.vep.vcf.gz
 echo "$scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
-	--pass-only \
 	--js $scriptDir/externals/slivar/slivar-functions.js \
-	--info \"INFO.gnomad_popmax_af < $gnomadAFThreshold && variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
+	--info \"variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
 	--gnotate $gnomadFile \
     --family-expr 'denovo:fam.every(segregating_denovo)' \
     --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
@@ -231,9 +232,8 @@ echo "$scriptDir/externals/slivar/slivar expr \
 $scriptDir/externals/slivar/slivar expr \
 	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
-	--pass-only \
 	--js $scriptDir/externals/slivar/slivar-functions.js \
-	--info "INFO.gnomad_popmax_af < $gnomadAFThreshold && variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
+	--info "variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
 	--gnotate $gnomadFile \
     --family-expr 'denovo:fam.every(segregating_denovo)' \
     --family-expr 'x_denovo:(variant.CHROM == "X" || variant.CHROM == "chrX") && fam.every(segregating_denovo_x)' \
@@ -241,7 +241,41 @@ $scriptDir/externals/slivar/slivar expr \
     --family-expr 'dominant:fam.every(segregating_dominant)' \
 	--out-vcf $tmpSlivarFile;
 
-echo "vep -i $tmpSlivarFile \
+echo "$scriptDir/externals/slivar/slivar expr \
+    --vcf $vcfFile.bcftools.vcf.gz \
+    --ped $pedFile \
+    --js $scriptDir/externals/slivar/slivar-functions.js \
+    --gnotate $gnomadFile \
+    --family-expr \'denovo:fam.every(segregating_denovo)\' \
+    --trio \'comphet_side:comphet_side(kid, mom, dad)\' \
+    | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile"
+
+$scriptDir/externals/slivar/slivar expr \
+    --vcf $vcfFile.bcftools.vcf.gz \
+    --ped $pedFile \
+    --js $scriptDir/externals/slivar/slivar-functions.js \
+    --gnotate $gnomadFile \
+    --family-expr 'denovo:fam.every(segregating_denovo)' \
+    --trio 'comphet_side:comphet_side(kid, mom, dad)' \
+    | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile
+
+echo "tabix $tmpSlivarFile"
+
+tabix $tmpSlivarFile
+
+echo "tabix $tmpChSlivarFile"
+
+tabix $tmpChSlivarFile
+
+echo "bcftools concat -a -d all $tmpSlivarFile $tmpChSlivarFile -O z -o $tmpAllSlivarFile"
+
+bcftools concat -a -d all $tmpSlivarFile $tmpChSlivarFile -O z -o $tmpAllSlivarFile
+
+echo "tabix $tmpAllSlivarFile"
+
+tabix $tmpAllSlivarFile
+
+echo "vep -i $tmpAllSlivarFile \
 	-o $slivarVepFile \
     --quiet \
 	--fork 40 \
@@ -263,7 +297,7 @@ echo "vep -i $tmpSlivarFile \
 	--compress_output gzip \
 	--plugin REVEL,$vepRevelFile;"
 
-vep -i $tmpSlivarFile \
+vep -i $tmpAllSlivarFile \
 	-o $slivarVepFile \
     --quiet \
 	--fork 40 \
