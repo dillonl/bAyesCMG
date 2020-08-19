@@ -267,7 +267,7 @@ echo "tabix $tmpChSlivarFile"
 
 tabix $tmpChSlivarFile
 
-echo "bcftools concat -a -d all $tmpSlivarFile $tmpChSlivarFile -O z -o $tmpAllSlivarFile"
+echo "bcftools concat -d none -a $tmpSlivarFile $tmpChSlivarFile -O z -o $tmpAllSlivarFile"
 
 bcftools concat $tmpSlivarFile $tmpChSlivarFile -d none -a -O z -o $tmpAllSlivarFile
 
