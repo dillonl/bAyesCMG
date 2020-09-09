@@ -198,19 +198,18 @@ if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
 	tabix -p vcf -f $clinVarVepGZFile ;
 fi
 
-tmpBcftoolsFile=./slivar.bcftools.vcf.gz
 tmpSamplesFile=bayescmg_tmp_samples.txt
 cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
 
 echo "zcat $vcfFile \
 	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
 	| bcftools norm -m - -w 10000 -f $referenceFile \
-	| bcftools view -a -c 1 -S $tmpSampliesFile -O z -o $tmpBcftoolsFile"
+	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $vcfFile.bcftools.vcf.gz"
 
 zcat $vcfFile \
 	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
 	| bcftools norm -m - -w 10000 -f $referenceFile \
-	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
+	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $vcfFile.bcftools.vcf.gz
 
 rm -f $tmpSamplesFile
 
@@ -219,7 +218,7 @@ tmpChSlivarFile=./slivar.ch.tmp.vcf.gz
 tmpAllSlivarFile=./slivar.all.tmp.vcf.gz
 slivarVepFile=./slivar.vep.vcf.gz
 echo "$scriptDir/externals/slivar/slivar expr \
-	--vcf $tmpBcftoolsFile \
+	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
 	--js $scriptDir/externals/slivar/slivar-functions.js \
 	--info \"variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
@@ -231,7 +230,7 @@ echo "$scriptDir/externals/slivar/slivar expr \
 	--out-vcf $tmpSlivarFile"
 
 $scriptDir/externals/slivar/slivar expr \
-	--vcf $tmpBcftoolsFile \
+	--vcf $vcfFile.bcftools.vcf.gz \
 	--ped $pedFile \
 	--js $scriptDir/externals/slivar/slivar-functions.js \
 	--info "variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
@@ -243,7 +242,7 @@ $scriptDir/externals/slivar/slivar expr \
 	--out-vcf $tmpSlivarFile;
 
 echo "$scriptDir/externals/slivar/slivar expr \
-    --vcf $tmpBcftoolsFile \
+    --vcf $vcfFile.bcftools.vcf.gz \
     --ped $pedFile \
     --js $scriptDir/externals/slivar/slivar-functions.js \
     --gnotate $gnomadFile \
@@ -252,7 +251,7 @@ echo "$scriptDir/externals/slivar/slivar expr \
     | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile"
 
 $scriptDir/externals/slivar/slivar expr \
-    --vcf $tmpBcftoolsFile \
+    --vcf $vcfFile.bcftools.vcf.gz \
     --ped $pedFile \
     --js $scriptDir/externals/slivar/slivar-functions.js \
     --gnotate $gnomadFile \
@@ -321,20 +320,9 @@ vep -i $tmpAllSlivarFile \
 	--plugin REVEL,$vepRevelFile;
 
 echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-
 python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
-
 bgzip -f $finishedVCFPath ;
-
 tabix -p vcf -f $finishedVCFPath.gz ;
-
-rm -f $tmpBcftoolsFile
-rm -f $tmpBcftoolsFile.tbi
-rm -f $tmpSlivarFile
-rm -f $tmpSlivarFile.tbi
-rm -f $tmpChSlivarFile
-rm -f $tmpChSlivarFile.tbi
-rm -f $tmpAllSlivarFile
-rm -f $tmpAllSlivarFile.tbi
-rm -f $slivarVepFile
-rm -f $slivarVepFile.tbi
+rm -rf $slivarVepFile
+rm -rf $tmpSlivarFile
+rm -rf $vcfFile.bcftools.vcf.gz
