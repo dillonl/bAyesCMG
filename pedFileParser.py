@@ -80,7 +80,7 @@ class Sample:
 def parserPedFile(pedFilePath):
     families = {}
     for line in open(pedFilePath):
-        if 'Kindred_ID' in line:
+        if 'kindred_id' in line.lower():
             continue
         line = line.replace('\n', '')
         lineSplit = line.split()
