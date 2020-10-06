@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 helpMessage="Usage: bAyesCMG [OPTION]\n
 \tDescription of bAyesCMG\n
 \t\t-h, --help                Print help instructions\n
@@ -13,11 +14,19 @@ helpMessage="Usage: bAyesCMG [OPTION]\n
 \t\t-f, --finished_vcf_path   File name of the output vcf [REQUIRED]\n\n
 \t\t-c, --get_clinvar         Download latest ClinVar file [OPTIONAL, if no ClinVar file available in the data directory this arg will be ignored and ClinVar will be downloaded automatically regardless]\n
 \t\t-t, --gnomad_af_threshold gnomAD_AF threshold [OPTIONAL, default = 0.01]\n
+\t\t-k, --keep_intermediate   Keep intermediate files [OPTIONAL, default = false]\n
 \t\t-j, --revel_threshold  REVEL threshold [OPTIONAL, default = 0.6]\n
 \t\t-y, --prior_probability   Prior probability [OPTIONAL, default 0.1]\n
 \t\t-o, --odds_pathogenic     The odds of pathogenicity for 'Very Strong' [OPTIONAL, default 350]\n
 \t\t-e, --exponent            The exponent that sets the strength of Supporting/Moderate/Strong compared to 'Very Strong' [OPTIONAL, default 0.1]\n"
 
+#set defaults
+keepIntermediate=0
+gnomadAFThreshold='0.01'
+revelAFThreshold='0.6'
+priorProbability='0.1'
+oddsPathogenic='350'
+exponent='2.0'
 PARAMS=""
 while (( "$#" )); do
 	case "$1" in
@@ -27,6 +36,10 @@ while (( "$#" )); do
 			;;
 		-c|--get_clinvar)
 			getClinVar=1
+			shift 1
+			;;
+		-k|--keep_intermediate)
+			keepIntermediate=1
 			shift 1
 			;;
 		-t|--gnomad_af_threshold)
@@ -95,8 +108,8 @@ while (( "$#" )); do
 			;;
 	esac
 done
-if [[ -z $vcfFile || -z $pedFile || -z $gnomadFile || -z $referenceFile || -z $vepCacheDir || -z $gnomadFile || -z $vepRevelFile || -z $vepPluginDir || -z $finishedVCFPath ]]; then
-	echo "Make Sure you provide out all required parameters"
+if [[ -z $vcfFile || -z $pedFile || -z $referenceFile || -z $vepCacheDir || -z $gnomadFile || -z $vepRevelFile || -z $vepPluginDir || -z $finishedVCFPath ]]; then
+	echo "Make Sure you provide all required parameters"
 	echo -e $helpMessage
 	exit 0
 fi
@@ -104,21 +117,12 @@ if ! [ -x "$(command -v vep)" ]; then
 	echo 'Error: vep is not installed. Please install vep to continue' >&2
 	exit 1
 fi
-if [[ -z $gnomadAFThreshold ]]; then
-	gnomadAFThreshold='0.01'
+
+if ! python validateFiles.py $vcfFile $pedFile; then
+	echo "Files not validated"
+	exit 1
 fi
-if [ -z $revelAFThreshold ]; then
-	revelAFThreshold='0.6'
-fi
-if [ -z $priorProbability ]; then
-	priorProbability='0.1'
-fi
-if [ -z $oddsPathogenic ]; then
-	oddsPathogenic='350'
-fi
-if [ -z $exponent ]; then
-	exponent='2.0'
-fi
+
 scriptDir="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
@@ -200,141 +204,157 @@ fi
 
 tmpBcftoolsFile=./slivar.bcftools.vcf.gz
 tmpSamplesFile=bayescmg_tmp_samples.txt
-cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
+if [ ! -f "$tmpSamplesFile" ]; then
+	echo "cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile" ;
+	cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
+fi
 
-echo "zcat $vcfFile \
-	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
-	| bcftools norm -m - -w 10000 -f $referenceFile \
-	| bcftools view -a -c 1 -S $tmpSampliesFile -O z -o $tmpBcftoolsFile"
+if [[ "$vcfFile" != *\.gz ]]; then
+	bgzip -c $vcfFile > "$tmpDirectory/tmpVCF.vcf.gz"
+	vcfFile="$tmpDirectory/tmpVCF.vcf.gz"
+	tabix $vcfFile
+fi
 
-zcat $vcfFile \
-	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
-	| bcftools norm -m - -w 10000 -f $referenceFile \
-	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
+if grep -v ^# $vcfFile | cut -f5 | grep -q ',' ; then # check if we need to normalize
+	if [ ! -f "$tmpBcftoolsFile" ]; then
+		echo "zcat $vcfFile \
+    	    | sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
+	        | bcftools norm -m - -w 10000 -f $referenceFile \
+	        | bcftools view -a -c 1 -S $tmpSampliesFile -O z -o $tmpBcftoolsFile"
 
-rm -f $tmpSamplesFile
+		zcat $vcfFile \
+			| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
+			| bcftools norm -m - -w 10000 -f $referenceFile \
+			| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
+	fi
+else # if we don't need to normalize then just set the file variable and move on
+	tmpBcftoolsFile=$vcfFile
+fi
 
 tmpSlivarFile=./slivar.tmp.vcf.gz
 tmpChSlivarFile=./slivar.ch.tmp.vcf.gz
 tmpAllSlivarFile=./slivar.all.tmp.vcf.gz
 slivarVepFile=./slivar.vep.vcf.gz
-echo "$scriptDir/externals/slivar/slivar expr \
-	--vcf $tmpBcftoolsFile \
-	--ped $pedFile \
-	--js $scriptDir/externals/slivar/slivar-functions.js \
-	--info \"variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
-	--gnotate $gnomadFile \
-    --family-expr 'denovo:fam.every(segregating_denovo)' \
-    --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
-    --family-expr 'recessive:fam.every(segregating_recessive)' \
-    --family-expr 'dominant:fam.every(segregating_dominant)' \
-	--out-vcf $tmpSlivarFile"
+if [ ! -f "$tmpSlivarFile" ]; then
+	echo "$scriptDir/externals/slivar/slivar expr \
+	    --vcf $tmpBcftoolsFile \
+	    --ped $pedFile \
+	    --js $scriptDir/externals/slivar/slivar-functions.js \
+	    --info \"variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
+	    --gnotate $gnomadFile \
+        --family-expr 'denovo:fam.every(segregating_denovo)' \
+        --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
+        --family-expr 'recessive:fam.every(segregating_recessive)' \
+        --family-expr 'dominant:fam.every(segregating_dominant)' \
+	    --out-vcf $tmpSlivarFile"
 
-$scriptDir/externals/slivar/slivar expr \
-	--vcf $tmpBcftoolsFile \
-	--ped $pedFile \
-	--js $scriptDir/externals/slivar/slivar-functions.js \
-	--info "variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
-	--gnotate $gnomadFile \
-    --family-expr 'denovo:fam.every(segregating_denovo)' \
-    --family-expr 'x_denovo:(variant.CHROM == "X" || variant.CHROM == "chrX") && fam.every(segregating_denovo_x)' \
-    --family-expr 'recessive:fam.every(segregating_recessive)' \
-    --family-expr 'dominant:fam.every(segregating_dominant)' \
-	--out-vcf $tmpSlivarFile;
+	$scriptDir/externals/slivar/slivar expr \
+		--vcf $tmpBcftoolsFile \
+		--ped $pedFile \
+		--js $scriptDir/externals/slivar/slivar-functions.js \
+		--info "variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
+		--gnotate $gnomadFile \
+		--family-expr 'denovo:fam.every(segregating_denovo)' \
+		--family-expr 'x_denovo:(variant.CHROM == "X" || variant.CHROM == "chrX") && fam.every(segregating_denovo_x)' \
+		--family-expr 'recessive:fam.every(segregating_recessive)' \
+		--family-expr 'dominant:fam.every(segregating_dominant)' \
+		--out-vcf $tmpSlivarFile;
 
-echo "$scriptDir/externals/slivar/slivar expr \
-    --vcf $tmpBcftoolsFile \
-    --ped $pedFile \
-    --js $scriptDir/externals/slivar/slivar-functions.js \
-    --gnotate $gnomadFile \
-    --family-expr \'denovo:fam.every(segregating_denovo)\' \
-    --trio \'comphet_side:comphet_side(kid, mom, dad)\' \
-    | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile"
+	echo "tabix $tmpSlivarFile"
+	tabix $tmpSlivarFile
+fi
 
-$scriptDir/externals/slivar/slivar expr \
-    --vcf $tmpBcftoolsFile \
-    --ped $pedFile \
-    --js $scriptDir/externals/slivar/slivar-functions.js \
-    --gnotate $gnomadFile \
-    --family-expr 'denovo:fam.every(segregating_denovo)' \
-    --trio 'comphet_side:comphet_side(kid, mom, dad)' \
-    | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile
+if [ ! -f "$tmpChSlivarFile" ]; then
+    echo "$scriptDir/externals/slivar/slivar expr \
+        --vcf $tmpBcftoolsFile \
+        --ped $pedFile \
+        --js $scriptDir/externals/slivar/slivar-functions.js \
+        --gnotate $gnomadFile \
+        --family-expr \'denovo:fam.every(segregating_denovo)\' \
+        --trio \'comphet_side:comphet_side(kid, mom, dad)\' \
+        | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile"
 
-echo "tabix $tmpSlivarFile"
+	$scriptDir/externals/slivar/slivar expr \
+		--vcf $tmpBcftoolsFile \
+		--ped $pedFile \
+		--js $scriptDir/externals/slivar/slivar-functions.js \
+		--gnotate $gnomadFile \
+		--family-expr 'denovo:fam.every(segregating_denovo)' \
+		--trio 'comphet_side:comphet_side(kid, mom, dad)' \
+		| slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile
 
-tabix $tmpSlivarFile
+	echo "tabix $tmpChSlivarFile"
+	tabix $tmpChSlivarFile
+fi
 
-echo "tabix $tmpChSlivarFile"
+if [ ! -f "$tmpAllSlivarFile" ]; then
+	echo "bcftools concat -d none -a $tmpSlivarFile $tmpChSlivarFile -O z -o $tmpAllSlivarFile"
+	bcftools concat $tmpSlivarFile $tmpChSlivarFile -d none -a -O z -o $tmpAllSlivarFile
 
-tabix $tmpChSlivarFile
+	echo "tabix $tmpAllSlivarFile"
+	tabix $tmpAllSlivarFile
+fi
 
-echo "bcftools concat -d none -a $tmpSlivarFile $tmpChSlivarFile -O z -o $tmpAllSlivarFile"
+if [ ! -f "$slivarVepFile" ]; then
+    echo "vep -i $tmpAllSlivarFile \
+    	-o $slivarVepFile \
+        --quiet \
+    	--fork 40 \
+	    --fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+	    --cache \
+	    --dir_cache $vepCacheDir \
+	    --dir_plugins $vepPluginDir \
+	    --assembly $assembly \
+	    --force_overwrite \
+	    --fasta $referenceFile \
+	    --symbol \
+	    --biotype \
+	    --vcf \
+	    --domains \
+	    --pubmed \
+	    --no_stats \
+	    --plugin ExACpLI \
+	    --plugin CSN \
+	    --compress_output gzip \
+	    --plugin REVEL,$vepRevelFile;"
 
-bcftools concat $tmpSlivarFile $tmpChSlivarFile -d none -a -O z -o $tmpAllSlivarFile
-
-echo "tabix $tmpAllSlivarFile"
-
-tabix $tmpAllSlivarFile
-
-echo "vep -i $tmpAllSlivarFile \
-	-o $slivarVepFile \
-    --quiet \
-	--fork 40 \
-	--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
-	--cache \
-	--dir_cache $vepCacheDir \
-	--dir_plugins $vepPluginDir \
-	--assembly $assembly \
-	--force_overwrite \
-	--fasta $referenceFile \
-	--symbol \
-	--biotype \
-	--vcf \
-	--domains \
-	--pubmed \
-	--no_stats \
-	--plugin ExACpLI \
-	--plugin CSN \
-	--compress_output gzip \
-	--plugin REVEL,$vepRevelFile;"
-
-vep -i $tmpAllSlivarFile \
-	-o $slivarVepFile \
-    --quiet \
-	--fork 40 \
-	--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
-	--cache \
-	--dir_cache $vepCacheDir \
-	--dir_plugins $vepPluginDir \
-	--assembly $assembly \
-	--force_overwrite \
-	--fasta $referenceFile \
-	--symbol \
-	--biotype \
-	--vcf \
-	--domains \
-	--pubmed \
-	--no_stats \
-	--plugin ExACpLI \
-	--plugin CSN \
-	--compress_output gzip \
-	--plugin REVEL,$vepRevelFile;
+    vep -i $tmpAllSlivarFile \
+	    -o $slivarVepFile \
+        --quiet \
+	    --fork 40 \
+	    --fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+	    --cache \
+	    --dir_cache $vepCacheDir \
+	    --dir_plugins $vepPluginDir \
+	    --assembly $assembly \
+	    --force_overwrite \
+	    --fasta $referenceFile \
+	    --symbol \
+	    --biotype \
+	    --vcf \
+	    --domains \
+	    --pubmed \
+	    --no_stats \
+	    --plugin ExACpLI \
+	    --plugin CSN \
+	    --compress_output gzip \
+	    --plugin REVEL,$vepRevelFile;
+fi
 
 echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-
 python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
-
 bgzip -f $finishedVCFPath ;
-
 tabix -p vcf -f $finishedVCFPath.gz ;
-
-rm -f $tmpBcftoolsFile
-rm -f $tmpBcftoolsFile.tbi
-rm -f $tmpSlivarFile
-rm -f $tmpSlivarFile.tbi
-rm -f $tmpChSlivarFile
-rm -f $tmpChSlivarFile.tbi
-rm -f $tmpAllSlivarFile
-rm -f $tmpAllSlivarFile.tbi
-rm -f $slivarVepFile
-rm -f $slivarVepFile.tbi
+if [[ $keepIntermediate -eq 0 ]] ; then
+	rm -f $tmpSamplesFile
+	rm -f $tmpBcftoolsFile
+	rm -f $tmpBcftoolsFile.tbi
+	rm -f $tmpSlivarFile
+	rm -f $tmpSlivarFile.tbi
+	rm -f $tmpChSlivarFile
+	rm -f $tmpChSlivarFile.tbi
+	rm -f $tmpAllSlivarFile
+	rm -f $tmpAllSlivarFile.tbi
+	rm -f $slivarVepFile
+	rm -f $slivarVepFile.tbi
+fi
