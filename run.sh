@@ -241,6 +241,7 @@ if [ ! -f "$tmpSlivarFile" ]; then
 	    --ped $pedFile \
 	    --js $scriptDir/externals/slivar/slivar-functions.js \
 	    --info \"variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
+        --pass-only \
 	    --gnotate $gnomadFile \
         --family-expr 'denovo:fam.every(segregating_denovo)' \
         --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
@@ -253,6 +254,7 @@ if [ ! -f "$tmpSlivarFile" ]; then
 		--ped $pedFile \
 		--js $scriptDir/externals/slivar/slivar-functions.js \
 		--info "variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
+        --pass-only \
 		--gnotate $gnomadFile \
 		--family-expr 'denovo:fam.every(segregating_denovo)' \
 		--family-expr 'x_denovo:(variant.CHROM == "X" || variant.CHROM == "chrX") && fam.every(segregating_denovo_x)' \
