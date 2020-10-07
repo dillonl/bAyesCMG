@@ -108,6 +108,7 @@ while (( "$#" )); do
 			;;
 	esac
 done
+scriptDir="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 if [[ -z $vcfFile || -z $pedFile || -z $referenceFile || -z $vepCacheDir || -z $gnomadFile || -z $vepRevelFile || -z $vepPluginDir || -z $finishedVCFPath ]]; then
 	echo "Make Sure you provide all required parameters"
 	echo -e $helpMessage
@@ -118,12 +119,11 @@ if ! [ -x "$(command -v vep)" ]; then
 	exit 1
 fi
 
-if ! python validateFiles.py $vcfFile $pedFile; then
+if ! python $scriptDir/validateFiles.py $vcfFile $pedFile; then
 	echo "Files not validated"
 	exit 1
 fi
 
-scriptDir="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
