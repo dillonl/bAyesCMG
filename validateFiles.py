@@ -17,7 +17,15 @@ def getPEDSamples(pedFile):
 def getVCFSamples(vcfFile):
     cols = ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']
     samples = []
-    for l in open(vcfFile, 'r'):
+    encode = False
+    if vcfFile.endswith('.gz'):
+        encode = True
+        f = gzip.open(vcfFile, 'rb')
+    else:
+        f = open(vcfFile, 'r')
+    for l in f:
+        if encode:
+            l = str(l, 'utf-8')
         if l.startswith('#CHROM'):
             for h in l.replace('\n', '').split():
                 if h not in cols:
@@ -30,7 +38,16 @@ def isPEDSamplesSubsetVCFSamples(pedSamples, vcfSamples):
     return all(x in vcfSamples for x in pedSamples)
 
 def isVCFDecomposed(vcfFile):
-    for l in open(vcfFile, 'r'):
+    encode = False
+    if vcfFile.endswith('.gz'):
+        encode = True
+        f = gzip.open(vcfFile, 'rb')
+    else:
+        f = open(vcfFile, 'r')
+    for l in f:
+        if encode:
+            l = str(l, 'utf-8')
+        l = str(l, 'utf-8')
         if l.startswith('#'):
             continue
         l = l.split('\t')
