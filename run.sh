@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 helpMessage="Usage: bAyesCMG [OPTION]\n
 \tDescription of bAyesCMG\n
 \t\t-h, --help                Print help instructions\n
@@ -118,9 +117,16 @@ if ! [ -x "$(command -v vep)" ]; then
 	echo 'Error: vep is not installed. Please install vep to continue' >&2
 	exit 1
 fi
+if ! [ -x "$(command -v bgzip)" ]; then
+	echo 'Error: bgzip is not installed. Please install vep to continue' >&2
+	exit 1
+fi
+if ! [ -x "$(command -v tabix)" ]; then
+	echo 'Error: tabix is not installed. Please install vep to continue' >&2
+	exit 1
+fi
 
 if ! python $scriptDir/validateFiles.py $vcfFile $pedFile; then
-	echo "Files not validated"
 	exit 1
 fi
 
