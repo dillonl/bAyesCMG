@@ -3,7 +3,9 @@ import sys, gzip
 def getPEDSamples(pedFile):
     samples = []
     firstLine = True
+    encode = False
     if pedFile.endswith('.gz'):
+        encode = True
         f = gzip.open(pedFile, 'rb')
     else:
         f = open(pedFile, 'r')
@@ -11,6 +13,8 @@ def getPEDSamples(pedFile):
         if firstLine:
             firstLine = False
             continue
+        if encode:
+            l = str(l, 'utf-8')
         samples.append(l.split()[1])
     return samples
 
@@ -47,7 +51,6 @@ def isVCFDecomposed(vcfFile):
     for l in f:
         if encode:
             l = str(l, 'utf-8')
-        l = str(l, 'utf-8')
         if l.startswith('#'):
             continue
         l = l.split('\t')
@@ -56,6 +59,9 @@ def isVCFDecomposed(vcfFile):
     return True
 
 if __name__ == '__main__':
+    if sys.version_info.major < 3:
+        sys.stderr.write("You need python 3 or later to run this script\n")
+        exit(1)
     vcfFile = sys.argv[1]
     pedFile = sys.argv[2]
     pedSamples = getPEDSamples(pedFile)
