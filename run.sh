@@ -208,8 +208,9 @@ if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
 	tabix -p vcf -f $clinVarVepGZFile ;
 fi
 
-tmpBcftoolsFile=./slivar.bcftools.vcf.gz
-tmpSamplesFile=bayescmg_tmp_samples.txt
+tmpBcftoolsFile=./tmp.slivar.bcftools.vcf.gz
+tmpSamplesFile=tmp.bayescmg.samples.txt
+
 if [ ! -f "$tmpSamplesFile" ]; then
 	echo "cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile" ;
 	cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
@@ -221,29 +222,73 @@ if [[ "$vcfFile" != *\.gz ]]; then
 	tabix $vcfFile
 fi
 
-if grep -v ^# $vcfFile | cut -f5 | grep -q ',' ; then # check if we need to normalize
-	if [ ! -f "$tmpBcftoolsFile" ]; then
-		echo "zcat $vcfFile \
-    	    | sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
-	        | bcftools norm -m - -w 10000 -f $referenceFile \
-	        | bcftools view -a -c 1 -S $tmpSampliesFile -O z -o $tmpBcftoolsFile"
+echo "zcat $vcfFile \
+    | sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
+    | bcftools norm -m - -w 10000 -f $referenceFile \
+	| bcftools view -a -c 1 -S $tmpSampliesFile -O z -o $tmpBcftoolsFile"
 
-		zcat $vcfFile \
-			| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
-			| bcftools norm -m - -w 10000 -f $referenceFile \
-			| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
-	fi
-else # if we don't need to normalize then just set the file variable and move on
-	tmpBcftoolsFile=$vcfFile
+zcat $vcfFile \
+	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
+	| bcftools norm -m - -w 10000 -f $referenceFile \
+	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
+
+tmpBcftoolsVepFile=./tmp.slivar.bcftools.vep.vcf.gz
+tmpSlivarFile=./tmp.slivar.vcf.gz
+tmpChSlivarFile=./tmp.slivar.ch.vcf.gz
+tmpAllSlivarFile=./tmp.slivar.all.vcf.gz
+slivarVepFile=./tmp.slivar.vep.vcf.gz
+
+if [ ! -f "$tmpBcftoolsVepFile" ]; then
+    echo "vep -i $tmpBcftoolsFile \
+        -o $ $tmpBcftoolsVepFile \
+        --quiet \
+        --fork 40 \
+        --fields "Location,Allele,Transcript,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+        --cache \
+        --dir_cache $vepCacheDir \
+        --dir_plugins $vepPluginDir \
+        --assembly $assembly \
+        --force_overwrite \
+        --fasta $referenceFile \
+        --symbol \
+        --biotype \
+        --vcf \
+        --keep_csq \
+        --domains \
+        --pubmed \
+        --no_stats \
+        --plugin ExACpLI \
+        --plugin CSN \
+        --compress_output gzip \
+        --plugin REVEL,$vepRevelFile;"
+
+    vep -i $tmpBcftoolsFile \
+        -o $tmpBcftoolsVepFile \
+        --quiet \
+        --fork 40 \
+        --fields "Location,Allele,Transcript,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+        --cache \
+        --dir_cache $vepCacheDir \
+        --dir_plugins $vepPluginDir \
+        --assembly $assembly \
+        --force_overwrite \
+        --fasta $referenceFile \
+        --symbol \
+        --biotype \
+        --vcf \
+        --keep_csq \
+        --domains \
+        --pubmed \
+        --no_stats \
+        --plugin ExACpLI \
+        --plugin CSN \
+        --compress_output gzip \
+        --plugin REVEL,$vepRevelFile;
 fi
 
-tmpSlivarFile=./slivar.tmp.vcf.gz
-tmpChSlivarFile=./slivar.ch.tmp.vcf.gz
-tmpAllSlivarFile=./slivar.all.tmp.vcf.gz
-slivarVepFile=./slivar.vep.vcf.gz
 if [ ! -f "$tmpSlivarFile" ]; then
 	echo "$scriptDir/externals/slivar/slivar expr \
-	    --vcf $tmpBcftoolsFile \
+	    --vcf $tmpBcftoolsVepFile \
 	    --ped $pedFile \
 	    --js $scriptDir/externals/slivar/slivar-functions.js \
 	    --info \"variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
@@ -256,7 +301,7 @@ if [ ! -f "$tmpSlivarFile" ]; then
 	    --out-vcf $tmpSlivarFile"
 
 	$scriptDir/externals/slivar/slivar expr \
-		--vcf $tmpBcftoolsFile \
+		--vcf $tmpBcftoolsVepFile \
 		--ped $pedFile \
 		--js $scriptDir/externals/slivar/slivar-functions.js \
 		--info "variant.FILTER == 'PASS' && variant.ALT[0] != '*'" \
@@ -274,7 +319,7 @@ fi
 
 if [ ! -f "$tmpChSlivarFile" ]; then
     echo "$scriptDir/externals/slivar/slivar expr \
-        --vcf $tmpBcftoolsFile \
+        --vcf $tmpBcftoolsVepFile \
         --ped $pedFile \
         --js $scriptDir/externals/slivar/slivar-functions.js \
         --gnotate $gnomadFile \
@@ -283,7 +328,7 @@ if [ ! -f "$tmpChSlivarFile" ]; then
         | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile"
 
 	$scriptDir/externals/slivar/slivar expr \
-		--vcf $tmpBcftoolsFile \
+		--vcf $tmpBcftoolsVepFile \
 		--ped $pedFile \
 		--js $scriptDir/externals/slivar/slivar-functions.js \
 		--gnotate $gnomadFile \
@@ -303,66 +348,16 @@ if [ ! -f "$tmpAllSlivarFile" ]; then
 	tabix $tmpAllSlivarFile
 fi
 
-if [ ! -f "$slivarVepFile" ]; then
-    echo "vep -i $tmpAllSlivarFile \
-    	-o $slivarVepFile \
-        --quiet \
-    	--fork 40 \
-	    --fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
-	    --cache \
-	    --dir_cache $vepCacheDir \
-	    --dir_plugins $vepPluginDir \
-	    --assembly $assembly \
-	    --force_overwrite \
-	    --fasta $referenceFile \
-	    --symbol \
-	    --biotype \
-	    --vcf \
-	    --domains \
-	    --pubmed \
-	    --no_stats \
-	    --plugin ExACpLI \
-	    --plugin CSN \
-	    --compress_output gzip \
-	    --plugin REVEL,$vepRevelFile;"
+echo "python $scriptDir/bAyesCMG.py -v $tmpAllSlivarFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
 
-    vep -i $tmpAllSlivarFile \
-	    -o $slivarVepFile \
-        --quiet \
-	    --fork 40 \
-	    --fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
-	    --cache \
-	    --dir_cache $vepCacheDir \
-	    --dir_plugins $vepPluginDir \
-	    --assembly $assembly \
-	    --force_overwrite \
-	    --fasta $referenceFile \
-	    --symbol \
-	    --biotype \
-	    --vcf \
-	    --domains \
-	    --pubmed \
-	    --no_stats \
-	    --plugin ExACpLI \
-	    --plugin CSN \
-	    --compress_output gzip \
-	    --plugin REVEL,$vepRevelFile;
-fi
+python $scriptDir/bAyesCMG.py -v $tmpAllSlivarFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
 
-echo "python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-python $scriptDir/bAyesCMG.py -v $slivarVepFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
 bgzip -f $finishedVCFPath ;
+
 tabix -p vcf -f $finishedVCFPath.gz ;
+
+exit
+
 if [[ $keepIntermediate -eq 0 ]] ; then
-	rm -f $tmpSamplesFile
-	rm -f $tmpBcftoolsFile
-	rm -f $tmpBcftoolsFile.tbi
-	rm -f $tmpSlivarFile
-	rm -f $tmpSlivarFile.tbi
-	rm -f $tmpChSlivarFile
-	rm -f $tmpChSlivarFile.tbi
-	rm -f $tmpAllSlivarFile
-	rm -f $tmpAllSlivarFile.tbi
-	rm -f $slivarVepFile
-	rm -f $slivarVepFile.tbi
+	rm -f tmp.*
 fi
