@@ -134,6 +134,10 @@ tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
 fi
+localTmpDirectory="bayescmg_tmp"
+if [ ! -d "$localTmpDirectory" ]; then
+	mkdir $localTmpDirectory
+fi
 assembly="GRCh37  --port 3337 \ "
 clinVarDownloadPath="ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/clinvar.vcf.gz"
 clinVarFile="$tmpDirectory/clinvar.vcf.gz"
@@ -208,8 +212,8 @@ if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
 	tabix -p vcf -f $clinVarVepGZFile ;
 fi
 
-tmpBcftoolsFile=./tmp.slivar.bcftools.vcf.gz
-tmpSamplesFile=tmp.bayescmg.samples.txt
+tmpBcftoolsFile=$localTmpDirectory/tmp.slivar.bcftools.vcf.gz
+tmpSamplesFile=$localTmpDirectory.bayescmg.samples.txt
 
 if [ ! -f "$tmpSamplesFile" ]; then
 	echo "cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile" ;
@@ -232,11 +236,11 @@ zcat $vcfFile \
 	| bcftools norm -m - -w 10000 -f $referenceFile \
 	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
 
-tmpBcftoolsVepFile=./tmp.slivar.bcftools.vep.vcf.gz
-tmpSlivarFile=./tmp.slivar.vcf.gz
-tmpChSlivarFile=./tmp.slivar.ch.vcf.gz
-tmpAllSlivarFile=./tmp.slivar.all.vcf.gz
-slivarVepFile=./tmp.slivar.vep.vcf.gz
+tmpBcftoolsVepFile=$localTmpDirectory/tmp.slivar.bcftools.vep.vcf.gz
+tmpSlivarFile=$localTmpDirectory/tmp.slivar.vcf.gz
+tmpChSlivarFile=$localTmpDirectory/tmp.slivar.ch.vcf.gz
+tmpAllSlivarFile=$localTmpDirectory/tmp.slivar.all.vcf.gz
+slivarVepFile=$localTmpDirectory/tmp.slivar.vep.vcf.gz
 
 if [ ! -f "$tmpBcftoolsVepFile" ]; then
     echo "vep -i $tmpBcftoolsFile \
@@ -356,8 +360,6 @@ bgzip -f $finishedVCFPath ;
 
 tabix -p vcf -f $finishedVCFPath.gz ;
 
-exit
-
 if [[ $keepIntermediate -eq 0 ]] ; then
-	rm -f tmp.*
+	rm -f $localTmpDirectory
 fi
