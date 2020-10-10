@@ -361,5 +361,5 @@ bgzip -f $finishedVCFPath ;
 tabix -p vcf -f $finishedVCFPath.gz ;
 
 if [[ $keepIntermediate -eq 0 ]] ; then
-	rm -f $localTmpDirectory
+	rm -rf $localTmpDirectory
 fi
