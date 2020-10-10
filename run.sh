@@ -213,7 +213,7 @@ if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
 fi
 
 tmpBcftoolsFile=$localTmpDirectory/tmp.slivar.bcftools.vcf.gz
-tmpSamplesFile=$localTmpDirectory.bayescmg.samples.txt
+tmpSamplesFile=$localTmpDirectory/bayescmg.samples.txt
 
 if [ ! -f "$tmpSamplesFile" ]; then
 	echo "cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile" ;
