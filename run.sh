@@ -130,6 +130,7 @@ if ! python $scriptDir/validateFiles.py $vcfFile $pedFile; then
 	exit 1
 fi
 
+set -x
 tmpDirectory="$scriptDir/data"
 if [ ! -d "$tmpDirectory" ]; then
 	mkdir $tmpDirectory
@@ -158,35 +159,10 @@ if [[ "$finishedVCFPath" == *\.gz ]]; then
 fi
 
 if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
-	echo "wget -P $tmpDirectory $clinVarDownloadPath" ;
-	echo "wget -P $tmpDirectory $clinVarDownloadPath.tbi" ;
-	echo "mv $clinVarFile $clinVarHGGZFile";
-	echo "vep -i $clinVarHGGZFile \
-		-o $clinVarVepFile \
-		--quiet \
-		--fork 40 \
-		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,MAX_AF,gnomAD_AF,ExACpLI,REVEL,DOMAINS" \
-		--cache \
-		--dir_cache $vepCacheDir \
-		--dir_plugins $vepPluginDir \
-		--assembly $assembly \
-		--force_overwrite \
-		--fasta $referenceFile \
-		--symbol \
-		--biotype \
-		--vcf \
-		--max_af \
-		--af_gnomad \
-		--domains \
-		--no_stats \
-		--plugin ExACpLI \
-		--plugin REVEL,$vepRevelFile ; \
-    bgzip -f $clinVarVepFile
-	tabix -p -f $clinVarVepGZFile"
-
 	wget -P $tmpDirectory $clinVarDownloadPath
 	wget -P $tmpDirectory $clinVarDownloadPath.tbi
 	mv $clinVarFile $clinVarHGGZFile
+	mv $clinVarFile.tbi $clinVarHGGZFile.tbi
 
 	vep -i $clinVarHGGZFile \
 		-o $clinVarVepFile \
@@ -216,7 +192,6 @@ tmpBcftoolsFile=$localTmpDirectory/tmp.slivar.bcftools.vcf.gz
 tmpSamplesFile=$localTmpDirectory/bayescmg.samples.txt
 
 if [ ! -f "$tmpSamplesFile" ]; then
-	echo "cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile" ;
 	cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
 fi
 
@@ -225,11 +200,6 @@ if [[ "$vcfFile" != *\.gz ]]; then
 	vcfFile="$tmpDirectory/tmpVCF.vcf.gz"
 	tabix $vcfFile
 fi
-
-echo "zcat $vcfFile \
-    | sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
-    | bcftools norm -m - -w 10000 -f $referenceFile \
-	| bcftools view -a -c 1 -S $tmpSampliesFile -O z -o $tmpBcftoolsFile"
 
 zcat $vcfFile \
 	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
@@ -243,29 +213,6 @@ tmpAllSlivarFile=$localTmpDirectory/tmp.slivar.all.vcf.gz
 slivarVepFile=$localTmpDirectory/tmp.slivar.vep.vcf.gz
 
 if [ ! -f "$tmpBcftoolsVepFile" ]; then
-    echo "vep -i $tmpBcftoolsFile \
-        -o $ $tmpBcftoolsVepFile \
-        --quiet \
-        --fork 40 \
-        --fields "Location,Allele,Transcript,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
-        --cache \
-        --dir_cache $vepCacheDir \
-        --dir_plugins $vepPluginDir \
-        --assembly $assembly \
-        --force_overwrite \
-        --fasta $referenceFile \
-        --symbol \
-        --biotype \
-        --vcf \
-        --keep_csq \
-        --domains \
-        --pubmed \
-        --no_stats \
-        --plugin ExACpLI \
-        --plugin CSN \
-        --compress_output gzip \
-        --plugin REVEL,$vepRevelFile;"
-
     vep -i $tmpBcftoolsFile \
         -o $tmpBcftoolsVepFile \
         --quiet \
@@ -291,19 +238,6 @@ if [ ! -f "$tmpBcftoolsVepFile" ]; then
 fi
 
 if [ ! -f "$tmpSlivarFile" ]; then
-	echo "$scriptDir/externals/slivar/slivar expr \
-	    --vcf $tmpBcftoolsVepFile \
-	    --ped $pedFile \
-	    --js $scriptDir/externals/slivar/slivar-functions.js \
-	    --info \"variant.FILTER == 'PASS' && variant.ALT[0] != '*'\" \
-        --pass-only \
-	    --gnotate $gnomadFile \
-        --family-expr 'denovo:fam.every(segregating_denovo)' \
-        --family-expr 'x_denovo:(variant.CHROM == \"X\" || variant.CHROM == \"chrX\") && fam.every(segregating_denovo_x)' \
-        --family-expr 'recessive:fam.every(segregating_recessive)' \
-        --family-expr 'dominant:fam.every(segregating_dominant)' \
-	    --out-vcf $tmpSlivarFile"
-
 	$scriptDir/externals/slivar/slivar expr \
 		--vcf $tmpBcftoolsVepFile \
 		--ped $pedFile \
@@ -316,21 +250,10 @@ if [ ! -f "$tmpSlivarFile" ]; then
 		--family-expr 'recessive:fam.every(segregating_recessive)' \
 		--family-expr 'dominant:fam.every(segregating_dominant)' \
 		--out-vcf $tmpSlivarFile;
-
-	echo "tabix $tmpSlivarFile"
 	tabix $tmpSlivarFile
 fi
 
 if [ ! -f "$tmpChSlivarFile" ]; then
-    echo "$scriptDir/externals/slivar/slivar expr \
-        --vcf $tmpBcftoolsVepFile \
-        --ped $pedFile \
-        --js $scriptDir/externals/slivar/slivar-functions.js \
-        --gnotate $gnomadFile \
-        --family-expr \'denovo:fam.every(segregating_denovo)\' \
-        --trio \'comphet_side:comphet_side(kid, mom, dad)\' \
-        | slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile"
-
 	$scriptDir/externals/slivar/slivar expr \
 		--vcf $tmpBcftoolsVepFile \
 		--ped $pedFile \
@@ -338,28 +261,21 @@ if [ ! -f "$tmpChSlivarFile" ]; then
 		--gnotate $gnomadFile \
 		--family-expr 'denovo:fam.every(segregating_denovo)' \
 		--trio 'comphet_side:comphet_side(kid, mom, dad)' \
-		| slivar_static compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile
+		| $scriptDir/externals/slivar/slivar compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile
 
-	echo "tabix $tmpChSlivarFile"
 	tabix $tmpChSlivarFile
 fi
 
 if [ ! -f "$tmpAllSlivarFile" ]; then
-	echo "bcftools concat -d none -a $tmpSlivarFile $tmpChSlivarFile -O z -o $tmpAllSlivarFile"
 	bcftools concat $tmpSlivarFile $tmpChSlivarFile -d none -a -O z -o $tmpAllSlivarFile
-
-	echo "tabix $tmpAllSlivarFile"
 	tabix $tmpAllSlivarFile
 fi
 
-echo "python $scriptDir/bAyesCMG.py -v $tmpAllSlivarFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold"
-
 python $scriptDir/bAyesCMG.py -v $tmpAllSlivarFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
-
-bgzip -f $finishedVCFPath ;
-
-tabix -p vcf -f $finishedVCFPath.gz ;
+bgzip -f $finishedVCFPath/bayescmg.vcf ;
+tabix -p vcf -f $finishedVCFPath/bayescmg.vcf.gz ;
 
 if [[ $keepIntermediate -eq 0 ]] ; then
 	rm -rf $localTmpDirectory
 fi
+set +x

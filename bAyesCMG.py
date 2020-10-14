@@ -70,7 +70,13 @@ def main():
         exit(0)
 
     clinVarData = getClinVarData(results.clinVar)
-    outputVCFFile = open(results.outputVcfFilePath, 'w')
+    outputDirectory = results.outputVcfFilePath
+    if not os.path.exists(outputDirectory):
+        os.makedirs(outputDirectory)
+    outputVCFFilePath = outputDirectory + "/bayescmg.vcf"
+    print(outputVCFFilePath)
+    exit(0)
+    outputVCFFile = open(outputVCFFilePath, 'w')
     families = pedFileParser.parserPedFile(results.pedFilePath)
     vcf = vcfFileParser.VUSVCF(families, results.vcfFilePath, results.priorProbability, results.oddsPathogenicity, results.exponent, results.gnomAD_AF_Threshold, results.REVEL_Threshold, outputVCFFile, clinVarData)
     vcf.processVariants()
