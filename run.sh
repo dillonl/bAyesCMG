@@ -201,10 +201,12 @@ if [[ "$vcfFile" != *\.gz ]]; then
 	tabix $vcfFile
 fi
 
+if [ ! -f "$tmpBcftoolsFile" ]; then
 zcat $vcfFile \
 	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
 	| bcftools norm -m - -w 10000 -f $referenceFile \
 	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
+fi
 
 tmpBcftoolsVepFile=$localTmpDirectory/tmp.slivar.bcftools.vep.vcf.gz
 tmpSlivarFile=$localTmpDirectory/tmp.slivar.vcf.gz
