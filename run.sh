@@ -154,89 +154,94 @@ if [[ "$referenceFile" == *"38"* ]]; then
 	assembly="GRCh38"
 fi
 
-if [[ "$finishedVCFPath" == *\.gz ]]; then
-	finishedVCFPath=${finishedVCFPath::-3}
-fi
-
-if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
-	wget -P $tmpDirectory $clinVarDownloadPath
-	wget -P $tmpDirectory $clinVarDownloadPath.tbi
-	mv $clinVarFile $clinVarHGGZFile
-	mv $clinVarFile.tbi $clinVarHGGZFile.tbi
-
-	vep -i $clinVarHGGZFile \
-		-o $clinVarVepFile \
-		--quiet \
-		--fork 40 \
-		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,MAX_AF,gnomAD_AF,ExACpLI,REVEL,DOMAINS" \
-		--cache \
-		--dir_cache $vepCacheDir \
-		--dir_plugins $vepPluginDir \
-		--assembly $assembly \
-		--force_overwrite \
-		--fasta $referenceFile \
-		--symbol \
-		--biotype \
-		--vcf \
-		--max_af \
-		--af_gnomad \
-		--domains \
-		--no_stats \
-		--plugin ExACpLI \
-		--plugin REVEL,$vepRevelFile ;
-	bgzip -f $clinVarVepFile ;
-	tabix -p vcf -f $clinVarVepGZFile ;
-fi
-
 tmpBcftoolsFile=$localTmpDirectory/tmp.slivar.bcftools.vcf.gz
 tmpSamplesFile=$localTmpDirectory/bayescmg.samples.txt
-
-if [ ! -f "$tmpSamplesFile" ]; then
-	cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
-fi
-
-if [[ "$vcfFile" != *\.gz ]]; then
-	bgzip -c $vcfFile > "$tmpDirectory/tmpVCF.vcf.gz"
-	vcfFile="$tmpDirectory/tmpVCF.vcf.gz"
-	tabix $vcfFile
-fi
-
-if [ ! -f "$tmpBcftoolsFile" ]; then
-zcat $vcfFile \
-	| sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
-	| bcftools norm -m - -w 10000 -f $referenceFile \
-	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
-fi
-
 tmpBcftoolsVepFile=$localTmpDirectory/tmp.slivar.bcftools.vep.vcf.gz
 tmpSlivarFile=$localTmpDirectory/tmp.slivar.vcf.gz
 tmpChSlivarFile=$localTmpDirectory/tmp.slivar.ch.vcf.gz
 tmpAllSlivarFile=$localTmpDirectory/tmp.slivar.all.vcf.gz
 slivarVepFile=$localTmpDirectory/tmp.slivar.vep.vcf.gz
 
-if [ ! -f "$tmpBcftoolsVepFile" ]; then
-    vep -i $tmpBcftoolsFile \
-        -o $tmpBcftoolsVepFile \
-        --quiet \
-        --fork 40 \
-        --fields "Location,Allele,Transcript,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
-        --cache \
-        --dir_cache $vepCacheDir \
-        --dir_plugins $vepPluginDir \
-        --assembly $assembly \
-        --force_overwrite \
-        --fasta $referenceFile \
-        --symbol \
-        --biotype \
-        --vcf \
-        --keep_csq \
-        --domains \
-        --pubmed \
-        --no_stats \
-        --plugin ExACpLI \
-        --plugin CSN \
-        --compress_output gzip \
-        --plugin REVEL,$vepRevelFile;
+if [[ "$finishedVCFPath" == *\.gz ]]; then
+	finishedVCFPath=${finishedVCFPath::-3}
+fi
+
+if ! python $scriptDir/checkForAnnotations.py $vcfFile; then
+
+    if [ -z getClinVar ] || [ ! -f "$clinVarHGGZFile" ]; then
+    	wget -P $tmpDirectory $clinVarDownloadPath
+	    wget -P $tmpDirectory $clinVarDownloadPath.tbi
+    	mv $clinVarFile $clinVarHGGZFile
+    	mv $clinVarFile.tbi $clinVarHGGZFile.tbi
+
+	    vep -i $clinVarHGGZFile \
+    		-o $clinVarVepFile \
+    		--quiet \
+    		--fork 40 \
+    		--fields "Location,Allele,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,MAX_AF,gnomAD_AF,ExACpLI,REVEL,DOMAINS" \
+    		--cache \
+    		--dir_cache $vepCacheDir \
+    		--dir_plugins $vepPluginDir \
+    		--assembly $assembly \
+    		--force_overwrite \
+    		--fasta $referenceFile \
+    		--symbol \
+    		--biotype \
+    		--vcf \
+    		--max_af \
+    		--af_gnomad \
+    		--domains \
+    		--no_stats \
+    		--plugin ExACpLI \
+    		--plugin REVEL,$vepRevelFile ;
+    	bgzip -f $clinVarVepFile ;
+    	tabix -p vcf -f $clinVarVepGZFile ;
+    fi
+
+    if [ ! -f "$tmpSamplesFile" ]; then
+    	cut -f 2 $pedFile | tail -n+2 > $tmpSamplesFile
+    fi
+
+    if [[ "$vcfFile" != *\.gz ]]; then
+    	bgzip -c $vcfFile > "$tmpDirectory/tmpVCF.vcf.gz"
+    	vcfFile="$tmpDirectory/tmpVCF.vcf.gz"
+    	tabix $vcfFile
+    fi
+
+    if [ ! -f "$tmpBcftoolsFile" ]; then
+        zcat $vcfFile \
+    	    | sed -e 's/ID=AD,Number=\./ID=AD,Number=R/' \
+        	| bcftools norm -m - -w 10000 -f $referenceFile \
+        	| bcftools view -a -c 1 -S $tmpSamplesFile -O z -o $tmpBcftoolsFile
+    fi
+
+    if [ ! -f "$tmpBcftoolsVepFile" ]; then
+        vep -i $tmpBcftoolsFile \
+            -o $tmpBcftoolsVepFile \
+            --quiet \
+            --fork 40 \
+            --fields "Location,Allele,Transcript,SYMBOL,IMPACT,Consequence,Protein_position,Amino_acids,Existing_variation,IND,ZYG,ExACpLI,REVEL,DOMAINS,CSN,PUBMED" \
+            --cache \
+            --dir_cache $vepCacheDir \
+            --dir_plugins $vepPluginDir \
+            --assembly $assembly \
+            --force_overwrite \
+            --fasta $referenceFile \
+            --symbol \
+            --biotype \
+            --vcf \
+            --keep_csq \
+            --domains \
+            --pubmed \
+            --no_stats \
+            --plugin ExACpLI \
+            --plugin CSN \
+            --compress_output gzip \
+            --plugin REVEL,$vepRevelFile;
+    fi
+else
+	#just set the bcftools file for slivar
+	$tmpBcftoolsVepFile=$vcfFile
 fi
 
 if [ ! -f "$tmpSlivarFile" ]; then
@@ -265,7 +270,7 @@ if [ ! -f "$tmpChSlivarFile" ]; then
 		--trio 'comphet_side:comphet_side(kid, mom, dad)' \
 		| $scriptDir/externals/slivar/slivar compound-hets -v /dev/stdin -s comphet_side -s denovo -p $pedFile -o $tmpChSlivarFile
 
-	tabix $tmpChSlivarFile
+ tabix $tmpChSlivarFile
 fi
 
 if [ ! -f "$tmpAllSlivarFile" ]; then
