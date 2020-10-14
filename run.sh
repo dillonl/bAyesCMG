@@ -277,7 +277,7 @@ python $scriptDir/bAyesCMG.py -v $tmpAllSlivarFile -f $pedFile -d $finishedVCFPa
 bgzip -f $finishedVCFPath/bayescmg.vcf ;
 tabix -p vcf -f $finishedVCFPath/bayescmg.vcf.gz ;
 
-if [[ $keepIntermediate -eq 0 ]] ; then
+if [[ $keepIntermediate -eq 1 ]] ; then
 	rm -rf $localTmpDirectory
 fi
 set +x
