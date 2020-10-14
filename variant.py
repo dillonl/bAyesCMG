@@ -219,9 +219,10 @@ class Variant:
         self.evidenceCodes["PP2"] = 0
         # Checking PP3
         self.evidenceCodes["PP3"] = 0
-        for revel in self.CSQDict['REVEL']:
-            if self.isCorrectlySegragated and len(revel) > 0 and float(revel) > self.REVEL_Threshold:
-                self.evidenceCodes["PP3"] = 1
+        if 'REVEL' in self.CSQDict:
+            for revel in self.CSQDict['REVEL']:
+                if self.isCorrectlySegragated and len(revel) > 0 and float(revel) > self.REVEL_Threshold:
+                    self.evidenceCodes["PP3"] = 1
         if self.evidenceCodes["PP3"] == 0:
             self.evidenceCodes["PP3"] = -1
         # Checking PP4
@@ -272,10 +273,11 @@ class Variant:
             self.evidenceCodes["BP3"] = -1
         # Checking BP4
         self.evidenceCodes["BP4"] = -1
-        for revel in self.CSQDict['REVEL']:
-            if self.isCorrectlySegragated and len(revel) > 0 and float(revel) < self.REVEL_Threshold:
-                self.evidenceCodes["BP4"] = 1
-                # Do we want to break here or keep counting?
+        if 'REVEL' in self.CSQDict:
+            for revel in self.CSQDict['REVEL']:
+                if self.isCorrectlySegragated and len(revel) > 0 and float(revel) < self.REVEL_Threshold:
+                    self.evidenceCodes["BP4"] = 1
+                    # Do we want to break here or keep counting?
         # Checking BP5
         self.evidenceCodes["BP5"] = 0
         # Checking BP6
