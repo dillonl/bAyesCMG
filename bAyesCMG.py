@@ -4,6 +4,7 @@ import argparse
 import vcfFileParser
 import pedFileParser
 import os.path
+import os
 from cyvcf2 import VCF
 from ftplib import FTP
 from dateutil import parser
@@ -70,11 +71,13 @@ def main():
         exit(0)
 
     clinVarData = getClinVarData(results.clinVar)
-    outputDirectory = results.outputVcfFilePath
-    if not os.path.exists(outputDirectory):
-        os.makedirs(outputDirectory)
-    outputVCFFilePath = outputDirectory + "/bayescmg.vcf"
-    outputVCFFile = open(outputVCFFilePath, 'w')
+    if '/' in results.outputVcfFilePath:
+        outputDirectory = os.path.dirname(os.path.abspath(results.outputVcfFilePath))
+        if not os.path.exists(outputDirectory):
+            os.makedirs(outputDirectory)
+    if results.outputVcfFilePath.endswith('.gz'):
+        results.outputVcfFilePath = results.outputVcfFilePath.replace('.gz', '')
+    outputVCFFile = open(results.outputVcfFilePath, 'w')
     families = pedFileParser.parserPedFile(results.pedFilePath)
     vcf = vcfFileParser.VUSVCF(families, results.vcfFilePath, results.priorProbability, results.oddsPathogenicity, results.exponent, results.gnomAD_AF_Threshold, results.REVEL_Threshold, outputVCFFile, clinVarData)
     vcf.processVariants()

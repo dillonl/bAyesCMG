@@ -279,8 +279,8 @@ if [ ! -f "$tmpAllSlivarFile" ]; then
 fi
 
 python $scriptDir/bAyesCMG.py -v $tmpAllSlivarFile -f $pedFile -d $finishedVCFPath -c $clinVarVepGZFile -e $exponent -o $oddsPathogenic -p $priorProbability -a $gnomadAFThreshold -r $revelAFThreshold ;
-bgzip -f $finishedVCFPath/bayescmg.vcf ;
-tabix -p vcf -f $finishedVCFPath/bayescmg.vcf.gz ;
+bgzip -f $finishedVCFPath ;
+tabix -p vcf -f $finishedVCFPath.gz ;
 
 if [[ $keepIntermediate -eq 0 ]] ; then
 	rm -rf $localTmpDirectory
