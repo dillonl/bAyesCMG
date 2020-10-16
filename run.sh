@@ -264,6 +264,7 @@ if [ ! -f "$tmpChSlivarFile" ]; then
 	$scriptDir/externals/slivar/slivar expr \
 		--vcf $tmpBcftoolsVepFile \
 		--ped $pedFile \
+        --pass-only \
 		--js $scriptDir/externals/slivar/slivar-functions.js \
 		--gnotate $gnomadFile \
 		--family-expr 'denovo:fam.every(segregating_denovo)' \
