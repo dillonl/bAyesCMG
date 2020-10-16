@@ -18,13 +18,17 @@ def main():
         print("You must provide a path to a valid VCF")
         exit(0)
 
+    encode = False
     f = None
     if vcfFilePath.endswith('vcf'):
         f = open(vcfFilePath, 'r')
     elif vcfFilePath.endswith('gz'):
+        encode = True
         f = gzip.open(vcfFilePath, 'rb')
 
     for line in f:
+        if encode:
+            line = str(line, 'utf-8')
         line = line.replace('\n', '')
         if line.startswith('#'):
             print(line)
